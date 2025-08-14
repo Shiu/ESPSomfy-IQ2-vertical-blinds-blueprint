@@ -1,0 +1,328 @@
+blueprint:
+  name: ESPSomfy Vertical Blinds Position Controller
+  description: >
+    Universal control system for ESPSomfy vertical blinds with customizable positions.
+    Define up to 4 positions and the timing between each position.
+    Works around ESPSomfy timing limitations by using direct motor commands with precise delays.
+    
+    Setup:
+    1. Create input_select helper with your position values (e.g., "0", "33", "50", "100")
+    2. Create input_number helpers for each movement timing
+    3. Use this blueprint to create scripts for each position
+    4. Add buttons to dashboard calling these scripts
+  
+  domain: script
+  input:
+    blind_entity:
+      name: Blind Entity
+      description: The ESPSomfy cover entity to control
+      selector:
+        entity:
+          domain: cover
+    
+    position_tracker:
+      name: Position Tracker
+      description: Input select that tracks current position (must have options like "0", "33", "50", "100")
+      selector:
+        entity:
+          domain: input_select
+    
+    target_position:
+      name: Target Position
+      description: The position to move to (must match one of your position tracker options)
+      selector:
+        text:
+    
+    # Position definitions (up to 4 positions)
+    pos_1:
+      name: Position 1 (Closed)
+      description: Usually 0 or 1 (avoiding 0 to prevent auto-rotation)
+      default: "0"
+      selector:
+        text:
+    
+    pos_2:
+      name: Position 2 (Partial 1)
+      description: First partial position (e.g., 33 or 25)
+      default: "33"
+      selector:
+        text:
+    
+    pos_3:
+      name: Position 3 (Partial 2)
+      description: Second partial position (e.g., 50 or 66)
+      default: "50"
+      selector:
+        text:
+    
+    pos_4:
+      name: Position 4 (Open)
+      description: Fully open position (usually 100)
+      default: "100"
+      selector:
+        text:
+    
+    # Timing helpers for all possible movements
+    timing_prefix:
+      name: Timing Helper Prefix
+      description: >
+        Prefix for your timing helpers (e.g., "dining_blinds" or "lounge_blinds").
+        The script will look for helpers like: [prefix]_100_to_50, [prefix]_50_to_0, etc.
+      selector:
+        text:
+    
+    full_open_time:
+      name: Full Open Helper
+      description: Input number helper containing time to fully open from any position
+      selector:
+        entity:
+          domain: input_number
+
+variables:
+  current_position: "{{ states(position_tracker) }}"
+  p1: !input pos_1
+  p2: !input pos_2
+  p3: !input pos_3
+  p4: !input pos_4
+  prefix: !input timing_prefix
+  target: !input target_position
+
+sequence:
+  - choose:
+      # Moving to Position 4 (Open - usually 100%)
+      - conditions:
+          - condition: template
+            value_template: "{{ target == p4 }}"
+        sequence:
+          - service: espsomfy_rts.send_command
+            data:
+              entity_id: !input blind_entity
+              command: "Up"
+          - delay:
+              milliseconds: "{{ states(full_open_time) | int }}"
+          - service: input_select.select_option
+            data:
+              entity_id: !input position_tracker
+              option: "{{ p4 }}"
+      
+      # Moving to Position 1 (Closed - usually 0%)
+      - conditions:
+          - condition: template
+            value_template: "{{ target == p1 }}"
+        sequence:
+          - choose:
+              # From P4 to P1
+              - conditions:
+                  - condition: template
+                    value_template: "{{ current_position == p4 }}"
+                sequence:
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "Down"
+                  - delay:
+                      milliseconds: "{{ states('input_number.' + prefix + '_' + p4 + '_to_' + p1) | int }}"
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "My"
+              
+              # From P3 to P1
+              - conditions:
+                  - condition: template
+                    value_template: "{{ current_position == p3 }}"
+                sequence:
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "Down"
+                  - delay:
+                      milliseconds: "{{ states('input_number.' + prefix + '_' + p3 + '_to_' + p1) | int }}"
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "My"
+              
+              # From P2 to P1
+              - conditions:
+                  - condition: template
+                    value_template: "{{ current_position == p2 }}"
+                sequence:
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "Down"
+                  - delay:
+                      milliseconds: "{{ states('input_number.' + prefix + '_' + p2 + '_to_' + p1) | int }}"
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "My"
+          
+          - service: input_select.select_option
+            data:
+              entity_id: !input position_tracker
+              option: "{{ p1 }}"
+      
+      # Moving to Position 2
+      - conditions:
+          - condition: template
+            value_template: "{{ target == p2 }}"
+        sequence:
+          - choose:
+              # From P4 to P2
+              - conditions:
+                  - condition: template
+                    value_template: "{{ current_position == p4 }}"
+                sequence:
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "Down"
+                  - delay:
+                      milliseconds: "{{ states('input_number.' + prefix + '_' + p4 + '_to_' + p2) | int }}"
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "My"
+              
+              # From P3 to P2
+              - conditions:
+                  - condition: template
+                    value_template: "{{ current_position == p3 }}"
+                sequence:
+                  - choose:
+                      # P3 > P2 (going down)
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ p3 | int > p2 | int }}"
+                        sequence:
+                          - service: espsomfy_rts.send_command
+                            data:
+                              entity_id: !input blind_entity
+                              command: "Down"
+                          - delay:
+                              milliseconds: "{{ states('input_number.' + prefix + '_' + p3 + '_to_' + p2) | int }}"
+                          - service: espsomfy_rts.send_command
+                            data:
+                              entity_id: !input blind_entity
+                              command: "My"
+                      # P3 < P2 (going up)
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ p3 | int < p2 | int }}"
+                        sequence:
+                          - service: espsomfy_rts.send_command
+                            data:
+                              entity_id: !input blind_entity
+                              command: "Up"
+                          - delay:
+                              milliseconds: "{{ states('input_number.' + prefix + '_' + p3 + '_to_' + p2) | int }}"
+                          - service: espsomfy_rts.send_command
+                            data:
+                              entity_id: !input blind_entity
+                              command: "My"
+              
+              # From P1 to P2
+              - conditions:
+                  - condition: template
+                    value_template: "{{ current_position == p1 }}"
+                sequence:
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "Up"
+                  - delay:
+                      milliseconds: "{{ states('input_number.' + prefix + '_' + p1 + '_to_' + p2) | int }}"
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "My"
+          
+          - service: input_select.select_option
+            data:
+              entity_id: !input position_tracker
+              option: "{{ p2 }}"
+      
+      # Moving to Position 3
+      - conditions:
+          - condition: template
+            value_template: "{{ target == p3 }}"
+        sequence:
+          - choose:
+              # From P4 to P3
+              - conditions:
+                  - condition: template
+                    value_template: "{{ current_position == p4 }}"
+                sequence:
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "Down"
+                  - delay:
+                      milliseconds: "{{ states('input_number.' + prefix + '_' + p4 + '_to_' + p3) | int }}"
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "My"
+              
+              # From P2 to P3
+              - conditions:
+                  - condition: template
+                    value_template: "{{ current_position == p2 }}"
+                sequence:
+                  - choose:
+                      # P2 < P3 (going up)
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ p2 | int < p3 | int }}"
+                        sequence:
+                          - service: espsomfy_rts.send_command
+                            data:
+                              entity_id: !input blind_entity
+                              command: "Up"
+                          - delay:
+                              milliseconds: "{{ states('input_number.' + prefix + '_' + p2 + '_to_' + p3) | int }}"
+                          - service: espsomfy_rts.send_command
+                            data:
+                              entity_id: !input blind_entity
+                              command: "My"
+                      # P2 > P3 (going down)
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ p2 | int > p3 | int }}"
+                        sequence:
+                          - service: espsomfy_rts.send_command
+                            data:
+                              entity_id: !input blind_entity
+                              command: "Down"
+                          - delay:
+                              milliseconds: "{{ states('input_number.' + prefix + '_' + p2 + '_to_' + p3) | int }}"
+                          - service: espsomfy_rts.send_command
+                            data:
+                              entity_id: !input blind_entity
+                              command: "My"
+              
+              # From P1 to P3
+              - conditions:
+                  - condition: template
+                    value_template: "{{ current_position == p1 }}"
+                sequence:
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "Up"
+                  - delay:
+                      milliseconds: "{{ states('input_number.' + prefix + '_' + p1 + '_to_' + p3) | int }}"
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "My"
+          
+          - service: input_select.select_option
+            data:
+              entity_id: !input position_tracker
+              option: "{{ p3 }}"
+
+mode: parallel
+max: 10

@@ -1,0 +1,186 @@
+# Example configuration for vertical blinds with the blueprint
+# Add this to your configuration.yaml or create as a package
+
+input_select:
+  # Dining room with 3 positions: 0, 33, 100
+  dining_blinds_position:
+    name: Dining Blinds Position
+    options:
+      - "0"
+      - "33"
+      - "100"
+    initial: "100"
+  
+  # Lounge with 3 positions: 0, 50, 100  
+  lounge_blinds_position:
+    name: Lounge Blinds Position
+    options:
+      - "0"
+      - "50"
+      - "100"
+    initial: "100"
+
+input_number:
+  # DINING ROOM TIMINGS (0, 33, 100)
+  
+  dining_blinds_100_to_0:
+    name: "Dining: 100% to 0% (ms)"
+    min: 0
+    max: 60000
+    step: 100
+    initial: 30500
+    mode: box
+  
+  dining_blinds_100_to_33:
+    name: "Dining: 100% to 33% (ms)"
+    min: 0
+    max: 60000
+    step: 100
+    initial: 10500
+    mode: box
+  
+  dining_blinds_33_to_0:
+    name: "Dining: 33% to 0% (ms)"
+    min: 0
+    max: 60000
+    step: 100
+    initial: 20000
+    mode: box
+  
+  dining_blinds_0_to_33:
+    name: "Dining: 0% to 33% (ms)"
+    min: 0
+    max: 60000
+    step: 100
+    initial: 20000
+    mode: box
+  
+  dining_blinds_full_open:
+    name: "Dining: Full Open Time (ms)"
+    min: 0
+    max: 60000
+    step: 100
+    initial: 35000
+    mode: box
+
+  # LOUNGE TIMINGS (0, 50, 100)
+  
+  lounge_blinds_100_to_0:
+    name: "Lounge: 100% to 0% (ms)"
+    min: 0
+    max: 60000
+    step: 100
+    initial: 28000
+    mode: box
+  
+  lounge_blinds_100_to_50:
+    name: "Lounge: 100% to 50% (ms)"
+    min: 0
+    max: 60000
+    step: 100
+    initial: 14000
+    mode: box
+  
+  lounge_blinds_50_to_0:
+    name: "Lounge: 50% to 0% (ms)"
+    min: 0
+    max: 60000
+    step: 100
+    initial: 14000
+    mode: box
+  
+  lounge_blinds_0_to_50:
+    name: "Lounge: 0% to 50% (ms)"
+    min: 0
+    max: 60000
+    step: 100
+    initial: 14000
+    mode: box
+  
+  lounge_blinds_full_open:
+    name: "Lounge: Full Open Time (ms)"
+    min: 0
+    max: 60000
+    step: 100
+    initial: 32000
+    mode: box
+
+# Dashboard Example
+# Add this to your Lovelace dashboard:
+
+dashboard_cards:
+  - type: vertical-stack
+    cards:
+      - type: markdown
+        content: "## Dining Room"
+      
+      - type: horizontal-stack
+        cards:
+          - type: button
+            name: Open
+            icon: mdi:blinds-open
+            tap_action:
+              action: call-service
+              service: script.dining_blinds_open
+          
+          - type: button
+            name: 33%
+            icon: mdi:blinds
+            tap_action:
+              action: call-service
+              service: script.dining_blinds_33
+          
+          - type: button
+            name: Close
+            icon: mdi:blinds-closed
+            tap_action:
+              action: call-service
+              service: script.dining_blinds_close
+      
+      - type: markdown
+        content: "## Lounge"
+      
+      - type: horizontal-stack
+        cards:
+          - type: button
+            name: Open
+            icon: mdi:blinds-open
+            tap_action:
+              action: call-service
+              service: script.lounge_blinds_open
+          
+          - type: button
+            name: 50%
+            icon: mdi:blinds
+            tap_action:
+              action: call-service
+              service: script.lounge_blinds_50
+          
+          - type: button
+            name: Close
+            icon: mdi:blinds-closed
+            tap_action:
+              action: call-service
+              service: script.lounge_blinds_close
+
+      # Optional: Show timing adjustments
+      - type: conditional
+        conditions:
+          - entity: input_boolean.show_blind_timings
+            state: "on"
+        card:
+          type: entities
+          title: Timing Adjustments
+          entities:
+            - type: section
+              label: Dining Room
+            - entity: input_number.dining_blinds_100_to_0
+            - entity: input_number.dining_blinds_100_to_33
+            - entity: input_number.dining_blinds_0_to_33
+            - entity: input_number.dining_blinds_33_to_0
+            - type: section
+              label: Lounge
+            - entity: input_number.lounge_blinds_100_to_0
+            - entity: input_number.lounge_blinds_100_to_50
+            - entity: input_number.lounge_blinds_0_to_50
+            - entity: input_number.lounge_blinds_50_to_0
