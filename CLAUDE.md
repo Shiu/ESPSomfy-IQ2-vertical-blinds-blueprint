@@ -98,9 +98,17 @@ Invert Position: OFF (fixed bug in code)
 - [ ] Automatic timing calibration
 - [ ] Position feedback from ESPSomfy (if available)
 
+## Repository Structure
+
+**IMPORTANT**: This project contains TWO separate git repositories:
+1. `/home/shiu/projects/espsomfy/ESPSomfy-fork/` - ESPSomfy code (reference only, DO NOT commit here)
+2. `/home/shiu/projects/espsomfy/vertical-blinds-blueprint/` - Blueprint repository (ONLY commit here)
+
+The ESPSomfy folder is kept for code reference when needed. All commits should ONLY be made in the `vertical-blinds-blueprint` folder.
+
 ## File Structure
 ```
-vertical-blinds-blueprint/
+vertical-blinds-blueprint/    # Git repository - COMMIT HERE
 ├── vertical_blinds_controller.yaml  # The blueprint
 ├── README.md                        # User documentation
 ├── CLAUDE.md                        # This file

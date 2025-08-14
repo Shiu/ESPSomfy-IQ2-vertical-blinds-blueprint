@@ -185,7 +185,7 @@ sequence:
                 sequence: []
               
               # From any other position - go fully open
-              default:
+            default:
                 - service: espsomfy_rts.send_command
                   data:
                     entity_id: !input blind_entity
