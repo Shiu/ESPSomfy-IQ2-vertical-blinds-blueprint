@@ -25,21 +25,25 @@ The blueprint bypasses ESPSomfy's position calculations entirely and uses direct
 - Easier to work around limitations than redesign core functionality
 - Blueprint solution is non-invasive and easily shareable
 
-### Why Self-Contained Scripts?
-- Eliminated need for multiple input_number helpers
-- All configuration in one place per script
-- Easier to set up and maintain
+### Why Event-Based Automation?
+- Only one automation per blind (not 3 scripts)
+- No scripts needed at all
+- Flexible - can support any position value
+- All configuration in one place per blind
 - Each blind can have completely different timings
 
 ## Blueprint Architecture
 
 ### Components
 1. **Position Tracker** (input_select): Tracks current position (0, 33/50, 100)
-2. **Scripts** (3 per blind): Open, Middle, Close positions
-3. **Timings** (embedded): All movement times configured in each script
+2. **Automation** (1 per blind): Listens for events and controls movement
+3. **Event System**: Fire `vertical_blinds_move` events with blind_id and position
+4. **Timings** (embedded): All movement times configured in the automation
 
 ### Movement Logic
-- Always knows current position from tracker
+- Automation listens for `vertical_blinds_move` events
+- Filters by `blind_id` to identify target blind
+- Checks current position from tracker
 - Calculates which movement path to use
 - Sends appropriate RTS command (Up/Down)
 - Waits precise timing
@@ -65,9 +69,9 @@ Invert Position: OFF (fixed bug in code)
 ### Home Assistant Setup
 1. Create position tracker (input_select) with position options
 2. Import blueprint
-3. Create 3 scripts per blind with target positions
-4. Configure timings in each script
-5. Add dashboard buttons
+3. Create ONE automation per blind using the blueprint
+4. Configure blind_id and timings in the automation
+5. Add dashboard buttons that fire events
 
 ## Testing Procedures
 

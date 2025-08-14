@@ -1,17 +1,16 @@
 blueprint:
-  name: ESPSomfy Vertical Blinds Controller (Event-Based)
+  name: ESPSomfy Vertical Blinds Controller (Self-Contained)
   description: >
-    Complete control system for ESPSomfy vertical blinds using custom events.
-    No scripts needed - just one automation per blind that responds to events.
+    Complete control system for ESPSomfy vertical blinds with all timings built-in.
+    No helpers needed - everything is configured within the script.
     
-    Call with: Fire event "vertical_blinds_move" with data:
-    - blind_id: (matches the blind_id you configure here)
-    - position: (0, 33, 50, 100, etc.)
+    Create one script per position (Open, Middle, Close) with this blueprint.
+    Each script contains all timing configurations.
     
     Works around ESPSomfy limitations by using direct motor commands with precise delays.
     Perfect for Benthin IQ2 motors with soft start/stop.
   
-  domain: automation
+  domain: script
   input:
     blind_entity:
       name: Blind Entity
@@ -20,19 +19,22 @@ blueprint:
         entity:
           domain: cover
     
-    blind_id:
-      name: Blind ID
-      description: >
-        Unique identifier for this blind (e.g., "dining", "lounge", "bedroom").
-        Used to target events to this specific blind.
+    target_position:
+      name: Target Position  
+      description: The position this script moves to (e.g., 0, 33, 50, 100)
       selector:
-        text:
+        number:
+          min: 0
+          max: 100
+          step: 1
+          unit_of_measurement: "%"
     
     position_tracker:
       name: Position Tracker Entity
       description: >
         Input select helper to track current position.
         Create one with options matching your positions (e.g., "0", "33", "100").
+        This is the only helper you need to create.
       selector:
         entity:
           domain: input_select
@@ -71,17 +73,18 @@ blueprint:
           step: 1
           unit_of_measurement: "%"
     
-    # Timing configurations
+    # Timing configurations - all built into the script
     time_open_to_close:
       name: Time - Open to Closed (ms)
       description: Time in milliseconds from fully open to closed
       default: 30000
       selector:
         number:
-          min: 1000
+          min: 0
           max: 60000
           step: 100
-          unit_of_measurement: "ms"
+          unit_of_measurement: ms
+          mode: box
     
     time_open_to_middle:
       name: Time - Open to Middle (ms)
@@ -89,10 +92,11 @@ blueprint:
       default: 15000
       selector:
         number:
-          min: 1000
+          min: 0
           max: 60000
           step: 100
-          unit_of_measurement: "ms"
+          unit_of_measurement: ms
+          mode: box
     
     time_middle_to_close:
       name: Time - Middle to Closed (ms)
@@ -100,10 +104,11 @@ blueprint:
       default: 15000
       selector:
         number:
-          min: 1000
+          min: 0
           max: 60000
           step: 100
-          unit_of_measurement: "ms"
+          unit_of_measurement: ms
+          mode: box
     
     time_close_to_middle:
       name: Time - Closed to Middle (ms)
@@ -111,10 +116,11 @@ blueprint:
       default: 15000
       selector:
         number:
-          min: 1000
+          min: 0
           max: 60000
           step: 100
-          unit_of_measurement: "ms"
+          unit_of_measurement: ms
+          mode: box
     
     time_full_open:
       name: Time - Full Open Reset (ms)
@@ -122,12 +128,13 @@ blueprint:
       default: 35000
       selector:
         number:
-          min: 1000
+          min: 0
           max: 60000
           step: 100
-          unit_of_measurement: "ms"
+          unit_of_measurement: ms
+          mode: box
     
-    reset_first:
+    always_reset:
       name: Always Reset Position First
       description: >
         Always go to fully open position before moving to target.
@@ -136,24 +143,17 @@ blueprint:
       selector:
         boolean:
 
-trigger:
-  - platform: event
-    event_type: vertical_blinds_move
-    event_data:
-      blind_id: !input blind_id
-
 variables:
   current_position: "{{ states(position_tracker) }}"
-  target_position: "{{ trigger.event.data.position | int }}"
+  target: !input target_position
   pos_closed: !input position_closed
   pos_middle: !input position_middle
   pos_open: !input position_open
-  reset_first: !input reset_first
-  position_tracker: !input position_tracker
+  reset_first: !input always_reset
 
-action:
-  # Optional: Reset to known position first
+sequence:
   - choose:
+      # Optional: Reset to known position first
       - conditions:
           - condition: template
             value_template: "{{ reset_first and current_position | string != pos_open | string }}"
@@ -171,12 +171,11 @@ action:
           - variables:
               current_position: "{{ pos_open }}"
   
-  # Main movement logic
   - choose:
       # Moving to OPEN position
       - conditions:
           - condition: template
-            value_template: "{{ target_position == pos_open }}"
+            value_template: "{{ target | int == pos_open | int }}"
         sequence:
           - choose:
               # Already at open
@@ -202,7 +201,7 @@ action:
       # Moving to CLOSED position
       - conditions:
           - condition: template
-            value_template: "{{ target_position == pos_closed }}"
+            value_template: "{{ target | int == pos_closed | int }}"
         sequence:
           - choose:
               # From open to closed
@@ -251,7 +250,7 @@ action:
       # Moving to MIDDLE position
       - conditions:
           - condition: template
-            value_template: "{{ target_position == pos_middle }}"
+            value_template: "{{ target | int == pos_middle | int }}"
         sequence:
           - choose:
               # From open to middle
@@ -270,7 +269,7 @@ action:
                       entity_id: !input blind_entity
                       command: "My"
               
-              # From closed to middle
+              # From closed to middle  
               - conditions:
                   - condition: template
                     value_template: "{{ current_position | int == pos_closed | int }}"
@@ -297,5 +296,5 @@ action:
               entity_id: !input position_tracker
               option: "{{ pos_middle }}"
 
-mode: single
-max_exceeded: silent
+mode: parallel
+max: 10
