@@ -55,51 +55,42 @@ cards:
     name: Open
     icon: mdi:blinds-open
     tap_action:
-      action: fire-dom-event
-      browser_mod:
-        service: browser_mod.service_call
-        data:
-          service: event.fire
-          service_data:
-            event_type: vertical_blinds_move
-            event_data:
-              blind_id: dining
-              position: 100
+      action: call-service
+      service: event.fire
+      data:
+        event_type: vertical_blinds_move
+        event_data:
+          blind_id: dining
+          position: 100
       
   - type: button
     name: 33%
     icon: mdi:blinds
     tap_action:
-      action: fire-dom-event
-      browser_mod:
-        service: browser_mod.service_call
-        data:
-          service: event.fire
-          service_data:
-            event_type: vertical_blinds_move
-            event_data:
-              blind_id: dining
-              position: 33
+      action: call-service
+      service: event.fire
+      data:
+        event_type: vertical_blinds_move
+        event_data:
+          blind_id: dining
+          position: 33
       
   - type: button
     name: Close
     icon: mdi:blinds-closed
     tap_action:
-      action: fire-dom-event
-      browser_mod:
-        service: browser_mod.service_call
-        data:
-          service: event.fire
-          service_data:
-            event_type: vertical_blinds_move
-            event_data:
-              blind_id: dining
-              position: 0
+      action: call-service
+      service: event.fire
+      data:
+        event_type: vertical_blinds_move
+        event_data:
+          blind_id: dining
+          position: 0
 ```
 
-### Alternative: Simple Service Call Buttons
+### Alternative: Using a Helper Script
 
-If you don't want to use browser_mod, you can create a helper script:
+For even simpler button configuration, you can create an optional helper script:
 
 ```yaml
 # In scripts.yaml
