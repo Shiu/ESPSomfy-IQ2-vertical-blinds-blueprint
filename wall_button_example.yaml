@@ -1,0 +1,80 @@
+# Wall Button Automations for Simple Vertical Blinds
+# These are separate from the blueprint to avoid import errors
+
+automation:
+  # Button 1 - Short press opens blinds
+  - alias: "Dining Blinds - Wall Button 1 Press"
+    trigger:
+      - platform: event
+        event_type: zha_event  # Change to match your button type
+        event_data:
+          device_id: "YOUR_BUTTON_1_DEVICE_ID"  # Replace with actual ID
+          command: "press"
+    action:
+      - event: vertical_blinds_control
+        event_data:
+          blind_id: "dining"
+          command: "open"
+  
+  # Button 1 - Long press goes to My position
+  - alias: "Dining Blinds - Wall Button 1 Hold"
+    trigger:
+      - platform: event
+        event_type: zha_event
+        event_data:
+          device_id: "YOUR_BUTTON_1_DEVICE_ID"
+          command: "hold"
+    action:
+      - event: vertical_blinds_control
+        event_data:
+          blind_id: "dining"
+          command: "my"
+  
+  # Button 2 - Short press closes blinds
+  - alias: "Dining Blinds - Wall Button 2 Press"
+    trigger:
+      - platform: event
+        event_type: zha_event
+        event_data:
+          device_id: "YOUR_BUTTON_2_DEVICE_ID"  # Replace with actual ID
+          command: "press"
+    action:
+      - event: vertical_blinds_control
+        event_data:
+          blind_id: "dining"
+          command: "close"
+  
+  # Button 2 - Long press also goes to My position
+  - alias: "Dining Blinds - Wall Button 2 Hold"
+    trigger:
+      - platform: event
+        event_type: zha_event
+        event_data:
+          device_id: "YOUR_BUTTON_2_DEVICE_ID"
+          command: "hold"
+    action:
+      - event: vertical_blinds_control
+        event_data:
+          blind_id: "dining"
+          command: "my"
+
+# How to find your button device IDs:
+# 1. Go to Developer Tools → Events
+# 2. In "Listen to events", enter your button's event type:
+#    - zha_event (for Zigbee buttons via ZHA)
+#    - deconz_event (for deCONZ)
+#    - zwave_js_value_notification (for Z-Wave)
+# 3. Click "Start Listening"
+# 4. Press your physical button
+# 5. Look for "device_id" in the event data
+# 6. Copy that ID and replace the placeholders above
+
+# Alternative: Using device triggers (if you prefer UI setup)
+# You can also create these automations via the UI:
+# 1. Create new automation
+# 2. Add trigger → Device → Select your button → Select action (press/hold)
+# 3. Add action → Call service → Events: Fire event
+# 4. Event type: vertical_blinds_control
+# 5. Event data:
+#      blind_id: dining
+#      command: open  # or close, my, etc.
