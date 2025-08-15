@@ -25,9 +25,10 @@ The blueprint bypasses ESPSomfy's position calculations entirely and uses direct
 - Easier to work around limitations than redesign core functionality
 - Blueprint solution is non-invasive and easily shareable
 
-### Why Event-Based Automation?
-- Only one automation per blind (not 3 scripts)
-- No scripts needed at all
+### Why Script Blueprint with Parameters?
+- Only one script per blind (not 3 scripts for different positions)
+- No helper scripts needed - the blueprint script IS the service
+- Direct dashboard integration - buttons call script with position parameter
 - Flexible - can support any position value
 - All configuration in one place per blind
 - Each blind can have completely different timings
@@ -36,14 +37,13 @@ The blueprint bypasses ESPSomfy's position calculations entirely and uses direct
 
 ### Components
 1. **Position Tracker** (input_select): Tracks current position (0, 33/50, 100)
-2. **Automation** (1 per blind): Listens for events and controls movement
-3. **Event System**: Fire `vertical_blinds_move` events with blind_id and position
-4. **Timings** (embedded): All movement times configured in the automation
+2. **Script** (1 per blind): Created from blueprint, accepts position parameter
+3. **Dashboard buttons**: Call script directly with position value
+4. **Timings** (embedded): All movement times configured in the script
 
 ### Movement Logic
-- Automation listens for `vertical_blinds_move` events
-- Filters by `blind_id` to identify target blind
-- Checks current position from tracker
+- Dashboard button calls script with position parameter
+- Script checks current position from tracker
 - Calculates which movement path to use
 - Sends appropriate RTS command (Up/Down)
 - Waits precise timing
@@ -69,9 +69,9 @@ Invert Position: OFF (fixed bug in code)
 ### Home Assistant Setup
 1. Create position tracker (input_select) with position options
 2. Import blueprint
-3. Create ONE automation per blind using the blueprint
-4. Configure blind_id and timings in the automation
-5. Add dashboard buttons that fire events
+3. Create ONE script per blind using the blueprint
+4. Configure timings in the script
+5. Add dashboard buttons that call script with position
 
 ## Testing Procedures
 

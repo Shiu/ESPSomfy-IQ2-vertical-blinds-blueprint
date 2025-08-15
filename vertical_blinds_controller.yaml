@@ -1,17 +1,16 @@
 blueprint:
-  name: ESPSomfy Vertical Blinds Controller (Event-Based)
+  name: ESPSomfy Vertical Blinds Controller
   description: >
-    Complete control system for ESPSomfy vertical blinds using custom events.
-    No scripts needed - just one automation per blind that responds to events.
+    Control system for ESPSomfy vertical blinds with precise timing.
+    Creates a script that accepts position parameter when called.
     
-    Call with: Fire event "vertical_blinds_move" with data:
-    - blind_id: (matches the blind_id you configure here)
-    - position: (0, 33, 50, 100, etc.)
+    Call with: service: script.your_blind_name
+    Data: position: 50 (or any value matching your configured positions)
     
     Works around ESPSomfy limitations by using direct motor commands with precise delays.
     Perfect for Benthin IQ2 motors with soft start/stop.
   
-  domain: automation
+  domain: script
   input:
     blind_entity:
       name: Blind Entity
@@ -19,14 +18,6 @@ blueprint:
       selector:
         entity:
           domain: cover
-    
-    blind_id:
-      name: Blind ID
-      description: >
-        Unique identifier for this blind (e.g., "dining", "lounge", "bedroom").
-        Used to target events to this specific blind.
-      selector:
-        text:
     
     position_tracker:
       name: Position Tracker Entity
@@ -136,22 +127,26 @@ blueprint:
       selector:
         boolean:
 
-trigger:
-  - platform: event
-    event_type: vertical_blinds_move
-    event_data:
-      blind_id: !input blind_id
+fields:
+  position:
+    description: Target position (0, 33, 50, 100, etc.)
+    example: 50
+    selector:
+      number:
+        min: 0
+        max: 100
+        step: 1
 
 variables:
   current_position: "{{ states(position_tracker) }}"
-  target_position: "{{ trigger.event.data.position | int }}"
+  target_position: "{{ position | int }}"
   pos_closed: !input position_closed
   pos_middle: !input position_middle
   pos_open: !input position_open
   reset_first: !input reset_first
   position_tracker: !input position_tracker
 
-action:
+sequence:
   # Optional: Reset to known position first
   - choose:
       - conditions:
@@ -297,5 +292,4 @@ action:
               entity_id: !input position_tracker
               option: "{{ pos_middle }}"
 
-mode: single
-max_exceeded: silent
+mode: parallel

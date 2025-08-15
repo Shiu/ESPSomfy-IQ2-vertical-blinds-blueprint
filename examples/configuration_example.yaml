@@ -1,5 +1,5 @@
-# Event-Based Vertical Blinds Configuration
-# Only ONE automation per blind is required!
+# ESPSomfy Vertical Blinds Configuration
+# Only ONE script per blind is required!
 
 input_select:
   # Dining room position tracker (33% middle)
@@ -20,22 +20,6 @@ input_select:
       - "100"
     initial: "100"
 
-# Required helper script to fire events from dashboard buttons
-# Dashboard buttons cannot directly fire events, so we need this script
-script:
-  move_vertical_blinds:
-    alias: Move Vertical Blinds
-    fields:
-      blind_id:
-        description: The blind identifier (e.g., dining, lounge)
-      position:
-        description: Target position (0-100)
-    sequence:
-      - event: vertical_blinds_move
-        event_data:
-          blind_id: "{{ blind_id }}"
-          position: "{{ position }}"
-
 # Example Dashboard Configuration
 dashboard_example:
   type: vertical-stack
@@ -54,30 +38,27 @@ dashboard_example:
           icon: mdi:blinds-open
           tap_action:
             action: call-service
-            service: script.move_vertical_blinds
+            service: script.dining_blinds_controller
             data:
-              blind_id: dining
-                position: 100
+              position: 100
         
         - type: button
           name: 33%
           icon: mdi:blinds
           tap_action:
             action: call-service
-            service: script.move_vertical_blinds
+            service: script.dining_blinds_controller
             data:
-              blind_id: dining
-                position: 33
+              position: 33
         
         - type: button
           name: Close
           icon: mdi:blinds-closed
           tap_action:
             action: call-service
-            service: script.move_vertical_blinds
+            service: script.dining_blinds_controller
             data:
-              blind_id: dining
-                position: 0
+              position: 0
     
     # Lounge Controls
     - type: markdown
@@ -90,30 +71,27 @@ dashboard_example:
           icon: mdi:blinds-open
           tap_action:
             action: call-service
-            service: script.move_vertical_blinds
+            service: script.lounge_blinds_controller
             data:
-              blind_id: lounge
-                position: 100
+              position: 100
         
         - type: button
           name: 50%
           icon: mdi:blinds
           tap_action:
             action: call-service
-            service: script.move_vertical_blinds
+            service: script.lounge_blinds_controller
             data:
-              blind_id: lounge
-                position: 50
+              position: 50
         
         - type: button
           name: Close
           icon: mdi:blinds-closed
           tap_action:
             action: call-service
-            service: script.move_vertical_blinds
+            service: script.lounge_blinds_controller
             data:
-              blind_id: lounge
-                position: 0
+              position: 0
     
     # Current Position Display
     - type: entities
@@ -124,29 +102,26 @@ dashboard_example:
         - entity: input_select.lounge_blinds_position
           name: Lounge
 
-# Automation Creation Guide:
+# Script Creation Guide:
 #
-# For each blind, create ONE automation using the blueprint:
+# For each blind, create ONE script using the blueprint:
 #
-# 1. Go to Settings → Automations & Scenes → Automations
-# 2. Create Automation → Use Blueprint
-# 3. Select "ESPSomfy Vertical Blinds Controller (Event-Based)"
+# 1. Go to Settings → Automations & Scenes → Scripts
+# 2. Create Script → Use Blueprint
+# 3. Select "ESPSomfy Vertical Blinds Controller"
 # 4. Configure:
 #    - Blind Entity: cover.dining_blinds
-#    - Blind ID: dining (unique identifier)
 #    - Position Tracker: input_select.dining_blinds_position
 #    - Position Values: Closed=0, Middle=33, Open=100
 #    - Timings: Your measured times in milliseconds
-# 5. Save with a descriptive name like "Dining Blinds Controller"
+# 5. Save with a descriptive name like "dining_blinds_controller"
 #
-# The automation will listen for events like:
-#   event_type: vertical_blinds_move
-#   event_data:
-#     blind_id: dining
+# The script accepts a position parameter when called:
+#   service: script.dining_blinds_controller
+#   data:
 #     position: 33
 #
-# You can test from Developer Tools → Events:
-# Event Type: vertical_blinds_move
-# Event Data (YAML):
-#   blind_id: dining
+# You can test from Developer Tools → Services:
+# Service: script.dining_blinds_controller
+# Data (YAML):
 #   position: 50

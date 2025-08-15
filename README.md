@@ -1,13 +1,14 @@
-# ESPSomfy Vertical Blinds Blueprint (Event-Based)
+# ESPSomfy Vertical Blinds Blueprint
 
-A simple, event-based Home Assistant automation blueprint for controlling vertical blinds with ESPSomfy RTS. No scripts needed - just one automation per blind!
+A simple Home Assistant script blueprint for controlling vertical blinds with ESPSomfy RTS. One script per blind that accepts position as a parameter - no helper scripts needed!
 
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/Shiu/ESPSomfy-IQ2-vertical-blinds-blueprint/blob/main/vertical_blinds_controller.yaml)
 
 ## Features
 
-- **No scripts required** - Just one automation per blind
-- **Event-based control** - Fire events to move blinds to any position
+- **Single script per blind** - Created from blueprint with all timings configured
+- **Direct dashboard integration** - Buttons call the script directly with position
+- **No helper scripts** - The blueprint script IS the service you call
 - **Minimal helpers** - Only need one position tracker per blind
 - **Customizable positions** - Set your own closed/middle/open values
 - **Soft start compensation** - Works perfectly with Benthin IQ2 motors
@@ -34,41 +35,20 @@ Click the import button above or use:
 https://github.com/Shiu/ESPSomfy-IQ2-vertical-blinds-blueprint/blob/main/vertical_blinds_controller.yaml
 ```
 
-### 3. Create ONE Automation Per Blind
+### 3. Create ONE Script Per Blind
 
-1. Go to Settings → Automations & Scenes → Automations
-2. Create Automation → Use Blueprint → "ESPSomfy Vertical Blinds Controller (Event-Based)"
+1. Go to Settings → Automations & Scenes → Scripts
+2. Create Script → Use Blueprint → "ESPSomfy Vertical Blinds Controller"
 3. Configure:
    - **Blind Entity**: `cover.dining_blinds`
-   - **Blind ID**: `dining` (unique identifier for this blind)
    - **Position Tracker**: `input_select.dining_blinds_position`
    - **Position Values**: Closed=`0`, Middle=`33`, Open=`100`
    - **Timings**: Enter your measured times in milliseconds
-   - Save as: `Dining Blinds Controller`
+   - Save as: `dining_blinds_controller`
 
-### 4. Create a Helper Script to Fire Events
+### 4. Add Dashboard Buttons
 
-Since dashboard buttons can't directly fire events, create this simple helper script:
-
-```yaml
-# In scripts.yaml or via UI
-move_vertical_blinds:
-  alias: Move Vertical Blinds
-  fields:
-    blind_id:
-      description: The blind identifier
-    position:
-      description: Target position (0-100)
-  sequence:
-    - event: vertical_blinds_move
-      event_data:
-        blind_id: "{{ blind_id }}"
-        position: "{{ position }}"
-```
-
-### 5. Add Dashboard Buttons
-
-Now add buttons that call the helper script:
+Buttons directly call your script with the position:
 
 ```yaml
 type: horizontal-stack
@@ -78,9 +58,8 @@ cards:
     icon: mdi:blinds-open
     tap_action:
       action: call-service
-      service: script.move_vertical_blinds
+      service: script.dining_blinds_controller
       data:
-        blind_id: dining
         position: 100
   
   - type: button
@@ -88,9 +67,8 @@ cards:
     icon: mdi:blinds
     tap_action:
       action: call-service
-      service: script.move_vertical_blinds
+      service: script.dining_blinds_controller
       data:
-        blind_id: dining
         position: 33
   
   - type: button
@@ -98,23 +76,19 @@ cards:
     icon: mdi:blinds-closed
     tap_action:
       action: call-service
-      service: script.move_vertical_blinds
+      service: script.dining_blinds_controller
       data:
-        blind_id: dining
         position: 0
 ```
 
 ## How It Works
 
-The automation listens for `vertical_blinds_move` events with:
-- `blind_id`: Which blind to control (matches the ID you configured)
-- `position`: Target position (0, 33, 50, 100, etc.)
-
-When an event is fired, the automation:
-1. Checks current position from the tracker
-2. Calculates the movement path needed
-3. Sends appropriate RTS commands with precise timing
-4. Updates the position tracker
+The script created from the blueprint:
+1. Accepts a `position` parameter when called
+2. Checks current position from the tracker
+3. Calculates the movement path needed
+4. Sends appropriate RTS commands with precise timing
+5. Updates the position tracker
 
 ## Measuring Timings
 
@@ -140,23 +114,21 @@ Enter times in milliseconds (seconds × 1000).
 - Enable "Always Reset" if you notice position drift
 
 ### Multiple Blinds
-Each blind gets its own automation with individual timings. Perfect for blinds with different motor speeds or travel distances.
+Each blind gets its own script with individual timings. Perfect for blinds with different motor speeds or travel distances.
 
-## Developer API
+## Advanced Usage
 
-You can also control blinds programmatically:
+You can call the script from automations or other scripts:
 
 ```yaml
 # In automations or scripts
-- event: vertical_blinds_move
-  event_data:
-    blind_id: dining
+- service: script.dining_blinds_controller
+  data:
     position: 50
 
-# From Developer Tools → Events
-Event Type: vertical_blinds_move
-Event Data:
-  blind_id: dining
+# From Developer Tools → Services
+Service: script.dining_blinds_controller
+Data:
   position: 33
 ```
 
@@ -171,7 +143,7 @@ Event Data:
 - Motor soft stop adds extra travel
 
 **Different motor speeds?**
-- Each automation has independent timings
+- Each script has independent timings
 - Measure and configure each blind separately
 
 ## Example Setup
@@ -179,11 +151,11 @@ Event Data:
 For a home with two rooms:
 
 **Dining Room** (33% middle position):
-- Automation: `Dining Blinds Controller` with blind_id: `dining`
+- Script: `script.dining_blinds_controller`
 - Position tracker: `input_select.dining_blinds_position` with options: 0, 33, 100
 
 **Lounge** (50% middle position):
-- Automation: `Lounge Blinds Controller` with blind_id: `lounge`
+- Script: `script.lounge_blinds_controller`
 - Position tracker: `input_select.lounge_blinds_position` with options: 0, 50, 100
 
 ## License
