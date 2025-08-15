@@ -154,21 +154,12 @@ cards:
           data:
             blind_id: dining
             position: 1
-      
-      # Optional: Custom position
-      - type: button
-        name: Custom
-        icon: mdi:tune
-        tap_action:
-          action: call-service
-          service: script.move_vertical_blinds
-          data:
-            blind_id: dining
-            position: "{{ states('input_number.dining_blinds_custom') | int }}"
 
-# Optional: Add a slider for custom positions
+# Optional: Add a slider for direct control
+  # Note: Use the slider to change input_number.dining_blinds_custom,
+  # then create an automation to fire the event when it changes
   - type: entities
-    title: Custom Position
+    title: Direct Control
     entities:
-      - entity: input_number.dining_blinds_custom
-        name: Set Custom %
+      - entity: input_number.dining_blinds_position
+        name: Slider Control

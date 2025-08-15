@@ -179,24 +179,15 @@ dashboard_example:
             data:
               blind_id: dining
               position: 1
-        
-        # Optional: Custom position from slider
-        - type: button
-          name: Custom
-          icon: mdi:tune
-          tap_action:
-            action: call-service
-            service: script.move_vertical_blinds
-            data:
-              blind_id: dining
-              position: "{{ states('input_number.dining_blinds_custom') | int }}"
     
-    # Optional: Slider for custom positions
+    # Optional: Slider for direct control
+    # You can create an automation that triggers when this changes
+    # to send the blind to that position
     - type: entities
-      title: Custom Position
+      title: Direct Control
       entities:
         - entity: input_number.dining_blinds_custom
-          name: Set Custom %
+          name: Custom Position %
 
     # Lounge Example (simpler 3-button version)
     - type: markdown

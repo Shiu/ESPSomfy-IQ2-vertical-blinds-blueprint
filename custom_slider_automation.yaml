@@ -1,0 +1,58 @@
+# Optional: Automation for custom position slider
+# This allows you to use a slider to set any custom position
+
+# First create an input_number helper:
+# Name: Dining Blinds Custom
+# Min: 1
+# Max: 100
+# Step: 1
+
+# Then create this automation:
+automation:
+  - alias: "Dining Blinds Custom Position"
+    description: "Move blinds when custom slider changes"
+    trigger:
+      - platform: state
+        entity_id: input_number.dining_blinds_custom
+        for:
+          seconds: 1  # Wait 1 second after slider stops moving
+    condition: []
+    action:
+      - event: vertical_blinds_move
+        event_data:
+          blind_id: dining
+          position: "{{ states('input_number.dining_blinds_custom') | int }}"
+
+# Alternative: Use a button with input_text for custom position
+# This avoids the template evaluation issue in dashboard buttons
+
+input_text:
+  dining_custom_position:
+    name: Dining Custom Position
+    initial: "50"
+    pattern: "^([1-9]|[1-9][0-9]|100)$"  # Only allow 1-100
+
+script:
+  move_dining_custom:
+    alias: "Move Dining to Custom Position"
+    sequence:
+      - event: vertical_blinds_move
+        event_data:
+          blind_id: dining
+          position: "{{ states('input_text.dining_custom_position') | int }}"
+
+# Then in dashboard:
+dashboard:
+  type: horizontal-stack
+  cards:
+    - type: entities
+      entities:
+        - entity: input_text.dining_custom_position
+          name: Enter %
+    
+    - type: button
+      name: Go to Custom
+      icon: mdi:arrow-right
+      tap_action:
+        action: call-service
+        service: script.move_dining_custom
