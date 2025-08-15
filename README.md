@@ -37,16 +37,27 @@ https://github.com/Shiu/ESPSomfy-IQ2-vertical-blinds-blueprint/blob/main/vertica
 
 ### 3. Create ONE Script Per Blind
 
+**IMPORTANT: You must create a script from the blueprint before the buttons will work!**
+
 1. Go to Settings → Automations & Scenes → Scripts
-2. Create Script → Use Blueprint → "ESPSomfy Vertical Blinds Controller"
-3. Configure:
+2. Click "+ CREATE SCRIPT" button
+3. Choose "Use a blueprint" 
+4. Select "ESPSomfy Vertical Blinds Controller"
+5. Configure:
+   - **Script Name**: `dining_blinds_controller` (IMPORTANT: Note this exact name for your buttons!)
    - **Blind Entity**: `cover.dining_blinds`
    - **Position Tracker**: `input_select.dining_blinds_position`
    - **Position Values**: Closed=`0`, Middle=`33`, Open=`100`
    - **Timings**: Enter your measured times in milliseconds
-   - Save as: `dining_blinds_controller`
+6. Click SAVE
+7. **IMPORTANT**: Go to Developer Tools → YAML → Click "SCRIPTS" to reload scripts
+   (Or restart Home Assistant)
+
+The script entity will be: `script.dining_blinds_controller` (script. prefix is added automatically)
 
 ### 4. Add Dashboard Buttons
+
+**Make sure you've created the script first (Step 3) or you'll get "Action not found" errors!**
 
 Buttons directly call your script with the position:
 
