@@ -1,44 +1,41 @@
-# ESPSomfy Vertical Blinds Blueprint (Smart Timing)
+# ESPSomfy Vertical Blinds Blueprint (Percentage-Based)
 
-A Home Assistant automation blueprint for controlling vertical blinds with ESPSomfy RTS. Features automatic timing calculation from a single measurement - just measure the full travel time once!
+A Home Assistant automation blueprint for controlling vertical blinds with ESPSomfy RTS. Send any percentage value (1-100) to move blinds to that exact position. Only requires measuring ONE timing!
 
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/Shiu/ESPSomfy-IQ2-vertical-blinds-blueprint/blob/main/vertical_blinds_controller.yaml)
 
 ## Features
 
+- **Percentage Control** - Send any value from 1-100% to position blinds exactly
 - **Smart Timing** - Only measure ONE time (full travel), everything else is calculated!
-- **3 preset positions** - Closed, middle, and fully open
-- **Position index system** - Uses simple 1,2,3 instead of confusing percentages
-- **Dynamic calculation** - Automatically calculates movement times based on position percentages
-- **Event-based control** - Fire events to move blinds to any position
+- **Dynamic calculation** - Automatically calculates movement times for any position
+- **Event-based control** - Fire events to move blinds to any percentage
 - **Single helper script** - Shared by all blinds for firing events
 - **Soft start compensation** - Works perfectly with Benthin IQ2 motors
-- **Position reset option** - Can auto-reset to position 3 (open) before movements
+- **Position reset option** - Can auto-reset to fully open before movements
 
 ## Position System
 
-Instead of using percentages directly, this blueprint uses position indices:
-- **Position 1**: Closed (you define what % this is, e.g., 1%)
-- **Position 2**: Middle position (e.g., 50%)
-- **Position 3**: Fully open (usually 100%)
+This blueprint uses direct percentage control:
+- **100%**: Fully open
+- **1-99%**: Any position you want
+- **1%**: Closed (use 1% instead of 0% to avoid auto-rotation on some motors)
 
-This makes it clear you're selecting presets, not actual percentages.
+You can send any percentage value and the blinds will move to that exact position.
 
 ## Quick Start
 
 ### 1. Create Position Tracker Helper
 
-Create an Input Select helper to track position:
+Create an Input Number helper to track position:
 
-**Go to Settings → Devices & Services → Helpers → Create Helper → Dropdown**
+**Go to Settings → Devices & Services → Helpers → Create Helper → Number**
 - Name: `Dining Blinds Position`
-- Options: 
-  ```
-  1
-  2
-  3
-  ```
-- Set initial value to match your blind's current position
+- Minimum: 1
+- Maximum: 100
+- Step size: 1
+- Unit of measurement: %
+- Initial value: 100
 
 ### 2. Import the Blueprint
 
@@ -50,17 +47,14 @@ https://github.com/Shiu/ESPSomfy-IQ2-vertical-blinds-blueprint/blob/main/vertica
 ### 3. Create ONE Automation Per Blind
 
 1. Go to Settings → Automations & Scenes → Automations
-2. Create Automation → Use Blueprint → "ESPSomfy Vertical Blinds Controller (Smart Timing)"
+2. Create Automation → Use Blueprint → "ESPSomfy Vertical Blinds Controller (Percentage-Based)"
 3. Configure:
    - **Blind Entity**: `cover.dining_blinds`
    - **Blind ID**: `dining` (unique identifier)
-   - **Position Tracker**: `input_select.dining_blinds_position`
-   - **Position Percentages**: 
-     - Position 1 = 1% (closed)
-     - Position 2 = 50% (middle)
-     - Position 3 = 100% (open)
+   - **Position Tracker**: `input_number.dining_blinds_position`
    - **Full Travel Time**: Measure time from fully open to closed (e.g., 30000ms)
    - **Soft Start Compensation**: Start with 1000ms, adjust if needed
+   - **Reset Buffer**: 3000ms (extra time when resetting)
    - Save as: `Dining Blinds Controller`
 
 ### 4. Create Helper Script
@@ -75,7 +69,7 @@ move_vertical_blinds:
     blind_id:
       description: The blind identifier
     position:
-      description: Target position (1,2,3)
+      description: Target position percentage (1-100)
   sequence:
     - event: vertical_blinds_move
       event_data:
@@ -91,8 +85,124 @@ cards:
   - type: markdown
     content: "## Dining Blinds"
   
+  # Current position display
+  - type: entities
+    entities:
+      - entity: input_number.dining_blinds_position
+        name: Current Position
+  
+  # Row 1: 100%, 90%, 80%
   - type: horizontal-stack
     cards:
+      - type: button
+        name: Open
+        icon: mdi:blinds-open
+        tap_action:
+          action: call-service
+          service: script.move_vertical_blinds
+          data:
+            blind_id: dining
+            position: 100
+      
+      - type: button
+        name: 90%
+        icon: mdi:blinds
+        tap_action:
+          action: call-service
+          service: script.move_vertical_blinds
+          data:
+            blind_id: dining
+            position: 90
+      
+      - type: button
+        name: 80%
+        icon: mdi:blinds
+        tap_action:
+          action: call-service
+          service: script.move_vertical_blinds
+          data:
+            blind_id: dining
+            position: 80
+  
+  # Row 2: 70%, 60%, 50%
+  - type: horizontal-stack
+    cards:
+      - type: button
+        name: 70%
+        icon: mdi:blinds
+        tap_action:
+          action: call-service
+          service: script.move_vertical_blinds
+          data:
+            blind_id: dining
+            position: 70
+      
+      - type: button
+        name: 60%
+        icon: mdi:blinds
+        tap_action:
+          action: call-service
+          service: script.move_vertical_blinds
+          data:
+            blind_id: dining
+            position: 60
+      
+      - type: button
+        name: 50%
+        icon: mdi:blinds
+        tap_action:
+          action: call-service
+          service: script.move_vertical_blinds
+          data:
+            blind_id: dining
+            position: 50
+  
+  # Row 3: 40%, 30%, 20%
+  - type: horizontal-stack
+    cards:
+      - type: button
+        name: 40%
+        icon: mdi:blinds
+        tap_action:
+          action: call-service
+          service: script.move_vertical_blinds
+          data:
+            blind_id: dining
+            position: 40
+      
+      - type: button
+        name: 30%
+        icon: mdi:blinds
+        tap_action:
+          action: call-service
+          service: script.move_vertical_blinds
+          data:
+            blind_id: dining
+            position: 30
+      
+      - type: button
+        name: 20%
+        icon: mdi:blinds
+        tap_action:
+          action: call-service
+          service: script.move_vertical_blinds
+          data:
+            blind_id: dining
+            position: 20
+  
+  # Row 4: 10%, Closed (1%)
+  - type: horizontal-stack
+    cards:
+      - type: button
+        name: 10%
+        icon: mdi:blinds
+        tap_action:
+          action: call-service
+          service: script.move_vertical_blinds
+          data:
+            blind_id: dining
+            position: 10
+      
       - type: button
         name: Closed
         icon: mdi:blinds-closed
@@ -102,26 +212,6 @@ cards:
           data:
             blind_id: dining
             position: 1
-      
-      - type: button
-        name: Middle
-        icon: mdi:blinds
-        tap_action:
-          action: call-service
-          service: script.move_vertical_blinds
-          data:
-            blind_id: dining
-            position: 2
-      
-      - type: button
-        name: Open
-        icon: mdi:blinds-open
-        tap_action:
-          action: call-service
-          service: script.move_vertical_blinds
-          data:
-            blind_id: dining
-            position: 3
 ```
 
 ## Measuring Timing
@@ -139,10 +229,9 @@ That's it! The blueprint automatically calculates all other movements using:
 
 ## Configuration Tips
 
-### Position Percentages
-- **Position 1**: Use 1% instead of 0% if motor auto-rotates slats at 0%
-- **Position 2**: Set to your preferred middle position (33%, 50%, 66%, etc.)
-- **Position 3**: Usually 100% for fully open
+### Closed Position
+- Use 1% instead of 0% if your motor auto-rotates slats at 0%
+- You can send any percentage value from 1-100
 
 ### Timing Accuracy
 - Measure the full travel time 2-3 times and average
@@ -156,12 +245,12 @@ Each blind gets its own automation with individual timings and position definiti
 
 **Automation not triggering?**
 - Check that blind_id matches exactly
-- Ensure position tracker has options "1", "2", "3" as strings
+- Ensure position tracker is an input_number with min: 1, max: 100
 - Reload automations after updating blueprint
 
 **Position drift?**
 - Enable "Always Reset Position First" option
-- This makes blinds go to position 3 first, then to target
+- This makes blinds go to 100% first, then to target
 - Increase Soft Start Compensation if positions are consistently short
 
 **Wrong position percentages?**
@@ -172,15 +261,15 @@ Each blind gets its own automation with individual timings and position definiti
 
 **Dining Room:**
 - Automation: `Dining Blinds Controller` with blind_id: `dining`
-- Position tracker: `input_select.dining_blinds_position`
-- Positions: 1=1%, 2=50%, 3=100%
+- Position tracker: `input_number.dining_blinds_position`
 - Full Travel Time: 30000ms (30 seconds)
+- Soft Start Compensation: 1000ms
 
 **Lounge:**
 - Automation: `Lounge Blinds Controller` with blind_id: `lounge`
-- Position tracker: `input_select.lounge_blinds_position`  
-- Positions: 1=0%, 2=33%, 3=100%
+- Position tracker: `input_number.lounge_blinds_position`  
 - Full Travel Time: 25000ms (25 seconds)
+- Soft Start Compensation: 1000ms
 
 ## License
 
