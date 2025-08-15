@@ -1,0 +1,174 @@
+# Dashboard Configuration for Percentage-Based Vertical Blinds
+# Copy this into your dashboard YAML
+
+# First, create the input_number helper:
+# Go to Settings → Devices & Services → Helpers → Create Helper → Number
+# Name: Dining Blinds Position
+# Min: 1
+# Max: 100
+# Step: 1
+# Initial: 100
+
+# Then create the helper script in scripts.yaml:
+script:
+  move_vertical_blinds:
+    alias: Move Vertical Blinds
+    fields:
+      blind_id:
+        description: The blind identifier (e.g., dining, lounge)
+      position:
+        description: Target position percentage (1-100)
+    sequence:
+      - event: vertical_blinds_move
+        event_data:
+          blind_id: "{{ blind_id }}"
+          position: "{{ position }}"
+
+# Dashboard card configuration:
+type: vertical-stack
+cards:
+  - type: markdown
+    content: "## Dining Blinds"
+  
+  # Current position display
+  - type: entities
+    entities:
+      - entity: input_number.dining_blinds_position
+        name: Current Position
+  
+  # Control buttons in rows
+  - type: horizontal-stack
+    cards:
+      - type: button
+        name: Open
+        icon: mdi:blinds-open
+        tap_action:
+          action: call-service
+          service: script.move_vertical_blinds
+          data:
+            blind_id: dining
+            position: 100
+      
+      - type: button
+        name: 90%
+        icon: mdi:blinds
+        tap_action:
+          action: call-service
+          service: script.move_vertical_blinds
+          data:
+            blind_id: dining
+            position: 90
+      
+      - type: button
+        name: 80%
+        icon: mdi:blinds
+        tap_action:
+          action: call-service
+          service: script.move_vertical_blinds
+          data:
+            blind_id: dining
+            position: 80
+  
+  - type: horizontal-stack
+    cards:
+      - type: button
+        name: 70%
+        icon: mdi:blinds
+        tap_action:
+          action: call-service
+          service: script.move_vertical_blinds
+          data:
+            blind_id: dining
+            position: 70
+      
+      - type: button
+        name: 60%
+        icon: mdi:blinds
+        tap_action:
+          action: call-service
+          service: script.move_vertical_blinds
+          data:
+            blind_id: dining
+            position: 60
+      
+      - type: button
+        name: 50%
+        icon: mdi:blinds
+        tap_action:
+          action: call-service
+          service: script.move_vertical_blinds
+          data:
+            blind_id: dining
+            position: 50
+  
+  - type: horizontal-stack
+    cards:
+      - type: button
+        name: 40%
+        icon: mdi:blinds
+        tap_action:
+          action: call-service
+          service: script.move_vertical_blinds
+          data:
+            blind_id: dining
+            position: 40
+      
+      - type: button
+        name: 30%
+        icon: mdi:blinds
+        tap_action:
+          action: call-service
+          service: script.move_vertical_blinds
+          data:
+            blind_id: dining
+            position: 30
+      
+      - type: button
+        name: 20%
+        icon: mdi:blinds
+        tap_action:
+          action: call-service
+          service: script.move_vertical_blinds
+          data:
+            blind_id: dining
+            position: 20
+  
+  - type: horizontal-stack
+    cards:
+      - type: button
+        name: 10%
+        icon: mdi:blinds
+        tap_action:
+          action: call-service
+          service: script.move_vertical_blinds
+          data:
+            blind_id: dining
+            position: 10
+      
+      - type: button
+        name: Closed
+        icon: mdi:blinds-closed
+        tap_action:
+          action: call-service
+          service: script.move_vertical_blinds
+          data:
+            blind_id: dining
+            position: 1
+      
+      # Optional: Custom position
+      - type: button
+        name: Custom
+        icon: mdi:tune
+        tap_action:
+          action: call-service
+          service: script.move_vertical_blinds
+          data:
+            blind_id: dining
+            position: "{{ states('input_number.dining_blinds_custom') | int }}"
+
+# Optional: Add a slider for custom positions
+  - type: entities
+    title: Custom Position
+    entities:
+      - entity: input_number.dining_blinds_custom
+        name: Set Custom %

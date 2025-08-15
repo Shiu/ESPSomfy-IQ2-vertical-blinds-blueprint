@@ -1,15 +1,11 @@
 blueprint:
-  name: ESPSomfy Vertical Blinds Controller (Smart Timing)
+  name: ESPSomfy Vertical Blinds Controller (Percentage-Based)
   description: >
     Control system for ESPSomfy vertical blinds with automatic timing calculation.
     Only requires measuring ONE timing - the full travel time from open to closed.
     
-    Position 1 = Closed (or nearly closed)
-    Position 2 = Middle position
-    Position 3 = Fully open
-    
-    The blueprint automatically calculates all intermediate timings using the
-    position percentages and soft start compensation.
+    Send any percentage value (1-100) to move blinds to that position.
+    Uses smart timing calculation with soft start compensation.
     
     Perfect for Benthin IQ2 motors with soft start/stop.
   
@@ -33,45 +29,11 @@ blueprint:
     position_tracker:
       name: Position Tracker Entity
       description: >
-        Input select helper to track current position.
-        Create with options: "1", "2", "3"
+        Input number helper to track current position percentage.
+        Create with min: 1, max: 100, step: 1
       selector:
         entity:
-          domain: input_select
-    
-    # Position definitions (what each position represents)
-    position_1_percent:
-      name: Position 1 - Closed (%)
-      description: What percentage Position 1 represents (usually 0 or 1 to avoid auto-rotation)
-      default: 1
-      selector:
-        number:
-          min: 0
-          max: 10
-          step: 1
-          unit_of_measurement: "%"
-    
-    position_2_percent:
-      name: Position 2 - Middle (%)
-      description: What percentage Position 2 represents (e.g., 33, 50, 66)
-      default: 50
-      selector:
-        number:
-          min: 20
-          max: 80
-          step: 1
-          unit_of_measurement: "%"
-    
-    position_3_percent:
-      name: Position 3 - Open (%)
-      description: What percentage Position 3 represents (usually 100)
-      default: 100
-      selector:
-        number:
-          min: 90
-          max: 100
-          step: 1
-          unit_of_measurement: "%"
+          domain: input_number
     
     # Single timing measurement - everything else is calculated!
     full_travel_time:
@@ -127,15 +89,10 @@ trigger:
 variables:
   blind_id: !input blind_id
   position_tracker: !input position_tracker
-  current_position: "{{ states(position_tracker) }}"
-  target_position: "{{ trigger.event.data.position | string }}"
+  current_position: "{{ states(position_tracker) | float }}"
+  target_position: "{{ trigger.event.data.position | float }}"
   reset_first: !input reset_first
   reset_buffer: !input reset_buffer
-  
-  # Position percentages
-  pos_1_pct: !input position_1_percent
-  pos_2_pct: !input position_2_percent
-  pos_3_pct: !input position_3_percent
   
   # Timing inputs
   full_travel: !input full_travel_time
@@ -143,26 +100,18 @@ variables:
   
   # Calculate movement time dynamically based on positions
   # Formula: time = (full_travel × distance_percentage) + soft_compensation
-  # distance_percentage = abs(target_position - current_position) / (pos_3 - pos_1)
+  # distance_percentage = abs(target - current) / 100
   calculate_time: >
-    {% set from_pos = current_position | int %}
-    {% set to_pos = target_position | int %}
-    {% set from_pct = pos_1_pct if from_pos == 1 else (pos_2_pct if from_pos == 2 else pos_3_pct) %}
-    {% set to_pct = pos_1_pct if to_pos == 1 else (pos_2_pct if to_pos == 2 else pos_3_pct) %}
-    {% set distance_pct = ((to_pct - from_pct) | abs) / (pos_3_pct - pos_1_pct) %}
-    {% if distance_pct == 1.0 %}
+    {% set distance_pct = ((target_position - current_position) | abs) / 100.0 %}
+    {% if distance_pct >= 0.99 %}
       {{ full_travel | int }}
     {% else %}
       {{ ((full_travel | float) * distance_pct + (soft_comp | float)) | int }}
     {% endif %}
   
-  # Determine movement direction
+  # Determine movement direction (100 = open, 1 = closed)
   movement_direction: >
-    {% set from_pos = current_position | int %}
-    {% set to_pos = target_position | int %}
-    {% set from_pct = pos_1_pct if from_pos == 1 else (pos_2_pct if from_pos == 2 else pos_3_pct) %}
-    {% set to_pct = pos_1_pct if to_pos == 1 else (pos_2_pct if to_pos == 2 else pos_3_pct) %}
-    {% if to_pct > from_pct %}Up{% else %}Down{% endif %}
+    {% if target_position > current_position %}Up{% else %}Down{% endif %}
 
 condition:
   - condition: template
@@ -176,22 +125,10 @@ action:
             value_template: "{{ reset_first }}"
         sequence:
           - choose:
-              # From position 1 - use full time plus buffer
+              # Reset to fully open from any position
               - conditions:
                   - condition: template
-                    value_template: "{{ current_position == '1' }}"
-                sequence:
-                  - service: espsomfy_rts.send_command
-                    data:
-                      entity_id: !input blind_entity
-                      command: "Up"
-                  - delay:
-                      milliseconds: "{{ (full_travel | int) + (reset_buffer | int) }}"
-              
-              # From position 2 - use calculated time to open plus buffer
-              - conditions:
-                  - condition: template
-                    value_template: "{{ current_position == '2' }}"
+                    value_template: "{{ current_position < 100 }}"
                 sequence:
                   - service: espsomfy_rts.send_command
                     data:
@@ -199,27 +136,15 @@ action:
                       command: "Up"
                   - delay:
                       milliseconds: >
-                        {% set dist_pct = (pos_3_pct - pos_2_pct) / (pos_3_pct - pos_1_pct) %}
-                        {{ ((full_travel | float) * dist_pct + (soft_comp | float) + (reset_buffer | float)) | int }}
-              
-              # From position 3 - just use buffer to ensure fully open
-              - conditions:
-                  - condition: template
-                    value_template: "{{ current_position == '3' }}"
-                sequence:
-                  - service: espsomfy_rts.send_command
-                    data:
-                      entity_id: !input blind_entity
-                      command: "Up"
-                  - delay:
-                      milliseconds: "{{ reset_buffer | int }}"
+                        {% set distance_pct = (100 - current_position) / 100.0 %}
+                        {{ ((full_travel | float) * distance_pct + (soft_comp | float) + (reset_buffer | float)) | int }}
           
-          - service: input_select.select_option
+          - service: input_number.set_value
             data:
               entity_id: !input position_tracker
-              option: "3"
+              value: 100
           - variables:
-              current_position: "3"
+              current_position: 100
   
   # Main movement logic - simplified with dynamic calculation
   - condition: template
@@ -238,10 +163,10 @@ action:
       command: "My"
   
   # Update position tracker after movement
-  - service: input_select.select_option
+  - service: input_number.set_value
     data:
       entity_id: !input position_tracker
-      option: "{{ target_position }}"
+      value: "{{ target_position }}"
 
 mode: single
 max_exceeded: silent
