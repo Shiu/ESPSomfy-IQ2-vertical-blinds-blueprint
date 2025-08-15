@@ -139,10 +139,9 @@ blueprint:
 trigger:
   - platform: event
     event_type: vertical_blinds_move
-    event_data:
-      blind_id: !input blind_id
 
 variables:
+  blind_id: !input blind_id
   current_position: "{{ states(position_tracker) }}"
   target_position: "{{ trigger.event.data.position | int }}"
   pos_closed: !input position_closed
@@ -150,6 +149,10 @@ variables:
   pos_open: !input position_open
   reset_first: !input reset_first
   position_tracker: !input position_tracker
+
+condition:
+  - condition: template
+    value_template: "{{ trigger.event.data.blind_id == blind_id }}"
 
 action:
   # Optional: Reset to known position first
