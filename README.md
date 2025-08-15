@@ -1,14 +1,14 @@
-# ESPSomfy Vertical Blinds Blueprint
+# ESPSomfy Vertical Blinds Blueprint (Event-Based)
 
-A simple Home Assistant script blueprint for controlling vertical blinds with ESPSomfy RTS. One script per blind that accepts position as a parameter - no helper scripts needed!
+A simple, event-based Home Assistant automation blueprint for controlling vertical blinds with ESPSomfy RTS. One automation per blind plus a simple helper script!
 
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/Shiu/ESPSomfy-IQ2-vertical-blinds-blueprint/blob/main/vertical_blinds_controller.yaml)
 
 ## Features
 
-- **Single script per blind** - Created from blueprint with all timings configured
-- **Direct dashboard integration** - Buttons call the script directly with position
-- **No helper scripts** - The blueprint script IS the service you call
+- **One automation per blind** - Simple and organized
+- **Event-based control** - Fire events to move blinds to any position
+- **Single helper script** - Shared by all blinds for firing events
 - **Minimal helpers** - Only need one position tracker per blind
 - **Customizable positions** - Set your own closed/middle/open values
 - **Soft start compensation** - Works perfectly with Benthin IQ2 motors
@@ -35,31 +35,41 @@ Click the import button above or use:
 https://github.com/Shiu/ESPSomfy-IQ2-vertical-blinds-blueprint/blob/main/vertical_blinds_controller.yaml
 ```
 
-### 3. Create ONE Script Per Blind
+### 3. Create ONE Automation Per Blind
 
-**IMPORTANT: You must create a script from the blueprint before the buttons will work!**
-
-1. Go to Settings → Automations & Scenes → Scripts
-2. Click "+ CREATE SCRIPT" button
-3. Choose "Use a blueprint" 
-4. Select "ESPSomfy Vertical Blinds Controller"
-5. Configure:
-   - **Script Name**: `dining_blinds_controller` (IMPORTANT: Note this exact name for your buttons!)
+1. Go to Settings → Automations & Scenes → Automations
+2. Create Automation → Use Blueprint → "ESPSomfy Vertical Blinds Controller (Event-Based)"
+3. Configure:
    - **Blind Entity**: `cover.dining_blinds`
+   - **Blind ID**: `dining` (unique identifier for this blind)
    - **Position Tracker**: `input_select.dining_blinds_position`
    - **Position Values**: Closed=`0`, Middle=`33`, Open=`100`
    - **Timings**: Enter your measured times in milliseconds
-6. Click SAVE
-7. **IMPORTANT**: Go to Developer Tools → YAML → Click "SCRIPTS" to reload scripts
-   (Or restart Home Assistant)
+   - Save as: `Dining Blinds Controller`
 
-The script entity will be: `script.dining_blinds_controller` (script. prefix is added automatically)
+### 4. Create a Helper Script to Fire Events
 
-### 4. Add Dashboard Buttons
+Since dashboard buttons can't directly fire events, create this simple helper script:
 
-**Make sure you've created the script first (Step 3) or you'll get "Action not found" errors!**
+```yaml
+# In scripts.yaml or via UI
+move_vertical_blinds:
+  alias: Move Vertical Blinds
+  fields:
+    blind_id:
+      description: The blind identifier
+    position:
+      description: Target position (0-100)
+  sequence:
+    - event: vertical_blinds_move
+      event_data:
+        blind_id: "{{ blind_id }}"
+        position: "{{ position }}"
+```
 
-Buttons directly call your script with the position:
+### 5. Add Dashboard Buttons
+
+Now add buttons that call the helper script:
 
 ```yaml
 type: horizontal-stack
@@ -69,8 +79,9 @@ cards:
     icon: mdi:blinds-open
     tap_action:
       action: call-service
-      service: script.dining_blinds_controller
+      service: script.move_vertical_blinds
       data:
+        blind_id: dining
         position: 100
   
   - type: button
@@ -78,8 +89,9 @@ cards:
     icon: mdi:blinds
     tap_action:
       action: call-service
-      service: script.dining_blinds_controller
+      service: script.move_vertical_blinds
       data:
+        blind_id: dining
         position: 33
   
   - type: button
@@ -87,19 +99,23 @@ cards:
     icon: mdi:blinds-closed
     tap_action:
       action: call-service
-      service: script.dining_blinds_controller
+      service: script.move_vertical_blinds
       data:
+        blind_id: dining
         position: 0
 ```
 
 ## How It Works
 
-The script created from the blueprint:
-1. Accepts a `position` parameter when called
-2. Checks current position from the tracker
-3. Calculates the movement path needed
-4. Sends appropriate RTS commands with precise timing
-5. Updates the position tracker
+The automation listens for `vertical_blinds_move` events with:
+- `blind_id`: Which blind to control (matches the ID you configured)
+- `position`: Target position (0, 33, 50, 100, etc.)
+
+When an event is fired, the automation:
+1. Checks current position from the tracker
+2. Calculates the movement path needed
+3. Sends appropriate RTS commands with precise timing
+4. Updates the position tracker
 
 ## Measuring Timings
 
@@ -125,21 +141,23 @@ Enter times in milliseconds (seconds × 1000).
 - Enable "Always Reset" if you notice position drift
 
 ### Multiple Blinds
-Each blind gets its own script with individual timings. Perfect for blinds with different motor speeds or travel distances.
+Each blind gets its own automation with individual timings. Perfect for blinds with different motor speeds or travel distances.
 
-## Advanced Usage
+## Developer API
 
-You can call the script from automations or other scripts:
+You can also control blinds programmatically:
 
 ```yaml
 # In automations or scripts
-- service: script.dining_blinds_controller
-  data:
+- event: vertical_blinds_move
+  event_data:
+    blind_id: dining
     position: 50
 
-# From Developer Tools → Services
-Service: script.dining_blinds_controller
-Data:
+# From Developer Tools → Events
+Event Type: vertical_blinds_move
+Event Data:
+  blind_id: dining
   position: 33
 ```
 
@@ -154,7 +172,7 @@ Data:
 - Motor soft stop adds extra travel
 
 **Different motor speeds?**
-- Each script has independent timings
+- Each automation has independent timings
 - Measure and configure each blind separately
 
 ## Example Setup
@@ -162,11 +180,11 @@ Data:
 For a home with two rooms:
 
 **Dining Room** (33% middle position):
-- Script: `script.dining_blinds_controller`
+- Automation: `Dining Blinds Controller` with blind_id: `dining`
 - Position tracker: `input_select.dining_blinds_position` with options: 0, 33, 100
 
 **Lounge** (50% middle position):
-- Script: `script.lounge_blinds_controller`
+- Automation: `Lounge Blinds Controller` with blind_id: `lounge`
 - Position tracker: `input_select.lounge_blinds_position` with options: 0, 50, 100
 
 ## License
