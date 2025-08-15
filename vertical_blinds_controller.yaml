@@ -142,13 +142,13 @@ trigger:
 
 variables:
   blind_id: !input blind_id
+  position_tracker: !input position_tracker
   current_position: "{{ states(position_tracker) }}"
   target_position: "{{ trigger.event.data.position | int }}"
   pos_closed: !input position_closed
   pos_middle: !input position_middle
   pos_open: !input position_open
   reset_first: !input reset_first
-  position_tracker: !input position_tracker
 
 condition:
   - condition: template
