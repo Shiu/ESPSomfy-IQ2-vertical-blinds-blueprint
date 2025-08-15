@@ -222,25 +222,20 @@ action:
               current_position: "3"
   
   # Main movement logic - simplified with dynamic calculation
-  - choose:
-      # Already at target position - do nothing
-      - conditions:
-          - condition: template
-            value_template: "{{ current_position == target_position }}"
-        sequence: []
-    
-    # Movement needed - calculate and execute
-    default:
-      - service: espsomfy_rts.send_command
-        data:
-          entity_id: !input blind_entity
-          command: "{{ movement_direction }}"
-      - delay:
-          milliseconds: "{{ calculate_time }}"
-      - service: espsomfy_rts.send_command
-        data:
-          entity_id: !input blind_entity
-          command: "My"
+  - condition: template
+    value_template: "{{ current_position != target_position }}"
+  
+  # Movement needed - calculate and execute
+  - service: espsomfy_rts.send_command
+    data:
+      entity_id: !input blind_entity
+      command: "{{ movement_direction }}"
+  - delay:
+      milliseconds: "{{ calculate_time }}"
+  - service: espsomfy_rts.send_command
+    data:
+      entity_id: !input blind_entity
+      command: "My"
   
   # Update position tracker after movement
   - service: input_select.select_option
