@@ -1,12 +1,13 @@
 blueprint:
-  name: ESPSomfy Vertical Blinds Controller (Event-Based)
+  name: ESPSomfy Vertical Blinds Controller (4-Position)
   description: >
-    Complete control system for ESPSomfy vertical blinds using custom events.
-    No scripts needed - just one automation per blind that responds to events.
+    Control system for ESPSomfy vertical blinds with up to 4 preset positions.
+    Uses position indices (1,2,3,4) instead of percentages for clarity.
     
-    Call with: Fire event "vertical_blinds_move" with data:
-    - blind_id: (matches the blind_id you configure here)
-    - position: (0, 33, 50, 100, etc.)
+    Position 1 = Closed (or nearly closed)
+    Position 2 = First middle position
+    Position 3 = Second middle position  
+    Position 4 = Fully open
     
     Works around ESPSomfy limitations by using direct motor commands with precise delays.
     Perfect for Benthin IQ2 motors with soft start/stop.
@@ -32,16 +33,16 @@ blueprint:
       name: Position Tracker Entity
       description: >
         Input select helper to track current position.
-        Create one with options matching your positions (e.g., "0", "33", "100").
+        Create with options: "1", "2", "3", "4"
       selector:
         entity:
           domain: input_select
     
-    # Define your positions
-    position_closed:
-      name: Closed Position
-      description: Position value for closed (usually 0 or 1 to avoid auto-rotation)
-      default: 0
+    # Position definitions (what each position represents)
+    position_1_percent:
+      name: Position 1 - Closed (%)
+      description: What percentage Position 1 represents (usually 0 or 1 to avoid auto-rotation)
+      default: 1
       selector:
         number:
           min: 0
@@ -49,20 +50,31 @@ blueprint:
           step: 1
           unit_of_measurement: "%"
     
-    position_middle:
-      name: Middle Position
-      description: Your middle position (e.g., 33, 50, 66)
-      default: 50
+    position_2_percent:
+      name: Position 2 - First Middle (%)
+      description: What percentage Position 2 represents (e.g., 33)
+      default: 33
       selector:
         number:
-          min: 20
-          max: 80
+          min: 10
+          max: 50
           step: 1
           unit_of_measurement: "%"
     
-    position_open:
-      name: Open Position
-      description: Position value for fully open (usually 100)
+    position_3_percent:
+      name: Position 3 - Second Middle (%)
+      description: What percentage Position 3 represents (e.g., 66)
+      default: 66
+      selector:
+        number:
+          min: 50
+          max: 90
+          step: 1
+          unit_of_measurement: "%"
+    
+    position_4_percent:
+      name: Position 4 - Open (%)
+      description: What percentage Position 4 represents (usually 100)
       default: 100
       selector:
         number:
@@ -71,10 +83,32 @@ blueprint:
           step: 1
           unit_of_measurement: "%"
     
-    # Timing configurations
-    time_open_to_close:
-      name: Time - Open to Closed (ms)
-      description: Time in milliseconds from fully open to closed
+    # Timing configurations - from Position 4 (open) to others
+    time_4_to_3:
+      name: Time - Position 4 to 3 (ms)
+      description: Time from fully open to second middle position
+      default: 10000
+      selector:
+        number:
+          min: 1000
+          max: 60000
+          step: 100
+          unit_of_measurement: "ms"
+    
+    time_4_to_2:
+      name: Time - Position 4 to 2 (ms)
+      description: Time from fully open to first middle position
+      default: 20000
+      selector:
+        number:
+          min: 1000
+          max: 60000
+          step: 100
+          unit_of_measurement: "ms"
+    
+    time_4_to_1:
+      name: Time - Position 4 to 1 (ms)
+      description: Time from fully open to closed
       default: 30000
       selector:
         number:
@@ -83,10 +117,11 @@ blueprint:
           step: 100
           unit_of_measurement: "ms"
     
-    time_open_to_middle:
-      name: Time - Open to Middle (ms)
-      description: Time in milliseconds from fully open to middle position
-      default: 15000
+    # Timing configurations - between middle positions
+    time_3_to_2:
+      name: Time - Position 3 to 2 (ms)
+      description: Time from second middle to first middle position
+      default: 10000
       selector:
         number:
           min: 1000
@@ -94,10 +129,10 @@ blueprint:
           step: 100
           unit_of_measurement: "ms"
     
-    time_middle_to_close:
-      name: Time - Middle to Closed (ms)
-      description: Time in milliseconds from middle position to closed
-      default: 15000
+    time_3_to_1:
+      name: Time - Position 3 to 1 (ms)
+      description: Time from second middle position to closed
+      default: 20000
       selector:
         number:
           min: 1000
@@ -105,10 +140,44 @@ blueprint:
           step: 100
           unit_of_measurement: "ms"
     
-    time_close_to_middle:
-      name: Time - Closed to Middle (ms)
-      description: Time in milliseconds from closed to middle position
-      default: 15000
+    time_2_to_1:
+      name: Time - Position 2 to 1 (ms)
+      description: Time from first middle position to closed
+      default: 10000
+      selector:
+        number:
+          min: 1000
+          max: 60000
+          step: 100
+          unit_of_measurement: "ms"
+    
+    # Reverse timings (going up)
+    time_1_to_2:
+      name: Time - Position 1 to 2 (ms)
+      description: Time from closed to first middle position
+      default: 10000
+      selector:
+        number:
+          min: 1000
+          max: 60000
+          step: 100
+          unit_of_measurement: "ms"
+    
+    time_1_to_3:
+      name: Time - Position 1 to 3 (ms)
+      description: Time from closed to second middle position
+      default: 20000
+      selector:
+        number:
+          min: 1000
+          max: 60000
+          step: 100
+          unit_of_measurement: "ms"
+    
+    time_2_to_3:
+      name: Time - Position 2 to 3 (ms)
+      description: Time from first middle to second middle position
+      default: 10000
       selector:
         number:
           min: 1000
@@ -144,10 +213,7 @@ variables:
   blind_id: !input blind_id
   position_tracker: !input position_tracker
   current_position: "{{ states(position_tracker) }}"
-  target_position: "{{ trigger.event.data.position | int }}"
-  pos_closed: !input position_closed
-  pos_middle: !input position_middle
-  pos_open: !input position_open
+  target_position: "{{ trigger.event.data.position | string }}"
   reset_first: !input reset_first
 
 condition:
@@ -155,11 +221,11 @@ condition:
     value_template: "{{ trigger.event.data.blind_id == blind_id }}"
 
 action:
-  # Optional: Reset to known position first
+  # Optional: Reset to known position first (go to position 4 - fully open)
   - choose:
       - conditions:
           - condition: template
-            value_template: "{{ reset_first and current_position | string != pos_open | string }}"
+            value_template: "{{ reset_first and current_position != '4' }}"
         sequence:
           - service: espsomfy_rts.send_command
             data:
@@ -170,135 +236,239 @@ action:
           - service: input_select.select_option
             data:
               entity_id: !input position_tracker
-              option: "{{ pos_open }}"
+              option: "4"
           - variables:
-              current_position: "{{ pos_open }}"
+              current_position: "4"
   
-  # Main movement logic
+  # Main movement logic based on current and target positions
   - choose:
-      # Moving to OPEN position
+      # Already at target position - do nothing
       - conditions:
           - condition: template
-            value_template: "{{ target_position == pos_open }}"
-        sequence:
-          - choose:
-              # Already at open
-              - conditions:
-                  - condition: template
-                    value_template: "{{ current_position | int == pos_open | int }}"
-                sequence: []
-              
-              # From any other position - go fully open
-            default:
-                - service: espsomfy_rts.send_command
-                  data:
-                    entity_id: !input blind_entity
-                    command: "Up"
-                - delay:
-                    milliseconds: !input time_full_open
-          
-          - service: input_select.select_option
-            data:
-              entity_id: !input position_tracker
-              option: "{{ pos_open }}"
+            value_template: "{{ current_position == target_position }}"
+        sequence: []
       
-      # Moving to CLOSED position
+      # From Position 4 (Open) to others
       - conditions:
           - condition: template
-            value_template: "{{ target_position == pos_closed }}"
+            value_template: "{{ current_position == '4' }}"
         sequence:
           - choose:
-              # From open to closed
+              # 4 → 3
               - conditions:
                   - condition: template
-                    value_template: "{{ current_position | int == pos_open | int }}"
+                    value_template: "{{ target_position == '3' }}"
                 sequence:
                   - service: espsomfy_rts.send_command
                     data:
                       entity_id: !input blind_entity
                       command: "Down"
                   - delay:
-                      milliseconds: !input time_open_to_close
+                      milliseconds: !input time_4_to_3
                   - service: espsomfy_rts.send_command
                     data:
                       entity_id: !input blind_entity
                       command: "My"
               
-              # From middle to closed
+              # 4 → 2
               - conditions:
                   - condition: template
-                    value_template: "{{ current_position | int == pos_middle | int }}"
+                    value_template: "{{ target_position == '2' }}"
                 sequence:
                   - service: espsomfy_rts.send_command
                     data:
                       entity_id: !input blind_entity
                       command: "Down"
                   - delay:
-                      milliseconds: !input time_middle_to_close
+                      milliseconds: !input time_4_to_2
                   - service: espsomfy_rts.send_command
                     data:
                       entity_id: !input blind_entity
                       command: "My"
               
-              # Already at closed
+              # 4 → 1
               - conditions:
                   - condition: template
-                    value_template: "{{ current_position | int == pos_closed | int }}"
-                sequence: []
-          
-          - service: input_select.select_option
-            data:
-              entity_id: !input position_tracker
-              option: "{{ pos_closed }}"
+                    value_template: "{{ target_position == '1' }}"
+                sequence:
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "Down"
+                  - delay:
+                      milliseconds: !input time_4_to_1
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "My"
       
-      # Moving to MIDDLE position
+      # From Position 3 to others
       - conditions:
           - condition: template
-            value_template: "{{ target_position == pos_middle }}"
+            value_template: "{{ current_position == '3' }}"
         sequence:
           - choose:
-              # From open to middle
+              # 3 → 4
               - conditions:
                   - condition: template
-                    value_template: "{{ current_position | int == pos_open | int }}"
-                sequence:
-                  - service: espsomfy_rts.send_command
-                    data:
-                      entity_id: !input blind_entity
-                      command: "Down"
-                  - delay:
-                      milliseconds: !input time_open_to_middle
-                  - service: espsomfy_rts.send_command
-                    data:
-                      entity_id: !input blind_entity
-                      command: "My"
-              
-              # From closed to middle
-              - conditions:
-                  - condition: template
-                    value_template: "{{ current_position | int == pos_closed | int }}"
+                    value_template: "{{ target_position == '4' }}"
                 sequence:
                   - service: espsomfy_rts.send_command
                     data:
                       entity_id: !input blind_entity
                       command: "Up"
                   - delay:
-                      milliseconds: !input time_close_to_middle
+                      milliseconds: !input time_4_to_3
                   - service: espsomfy_rts.send_command
                     data:
                       entity_id: !input blind_entity
                       command: "My"
               
-              # Already at middle
+              # 3 → 2
               - conditions:
                   - condition: template
-                    value_template: "{{ current_position | int == pos_middle | int }}"
-                sequence: []
-          
-          - service: input_select.select_option
-            data:
-              entity_id: !input position_tracker
-              option: "{{ pos_middle }}"
+                    value_template: "{{ target_position == '2' }}"
+                sequence:
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "Down"
+                  - delay:
+                      milliseconds: !input time_3_to_2
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "My"
+              
+              # 3 → 1
+              - conditions:
+                  - condition: template
+                    value_template: "{{ target_position == '1' }}"
+                sequence:
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "Down"
+                  - delay:
+                      milliseconds: !input time_3_to_1
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "My"
+      
+      # From Position 2 to others
+      - conditions:
+          - condition: template
+            value_template: "{{ current_position == '2' }}"
+        sequence:
+          - choose:
+              # 2 → 4
+              - conditions:
+                  - condition: template
+                    value_template: "{{ target_position == '4' }}"
+                sequence:
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "Up"
+                  - delay:
+                      milliseconds: !input time_4_to_2
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "My"
+              
+              # 2 → 3
+              - conditions:
+                  - condition: template
+                    value_template: "{{ target_position == '3' }}"
+                sequence:
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "Up"
+                  - delay:
+                      milliseconds: !input time_2_to_3
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "My"
+              
+              # 2 → 1
+              - conditions:
+                  - condition: template
+                    value_template: "{{ target_position == '1' }}"
+                sequence:
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "Down"
+                  - delay:
+                      milliseconds: !input time_2_to_1
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "My"
+      
+      # From Position 1 (Closed) to others
+      - conditions:
+          - condition: template
+            value_template: "{{ current_position == '1' }}"
+        sequence:
+          - choose:
+              # 1 → 4
+              - conditions:
+                  - condition: template
+                    value_template: "{{ target_position == '4' }}"
+                sequence:
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "Up"
+                  - delay:
+                      milliseconds: !input time_4_to_1
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "My"
+              
+              # 1 → 3
+              - conditions:
+                  - condition: template
+                    value_template: "{{ target_position == '3' }}"
+                sequence:
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "Up"
+                  - delay:
+                      milliseconds: !input time_1_to_3
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "My"
+              
+              # 1 → 2
+              - conditions:
+                  - condition: template
+                    value_template: "{{ target_position == '2' }}"
+                sequence:
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "Up"
+                  - delay:
+                      milliseconds: !input time_1_to_2
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "My"
+  
+  # Update position tracker after movement
+  - service: input_select.select_option
+    data:
+      entity_id: !input position_tracker
+      option: "{{ target_position }}"
 
 mode: single
 max_exceeded: silent

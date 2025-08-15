@@ -1,32 +1,45 @@
-# ESPSomfy Vertical Blinds Blueprint (Event-Based)
+# ESPSomfy Vertical Blinds Blueprint (4-Position System)
 
-A simple, event-based Home Assistant automation blueprint for controlling vertical blinds with ESPSomfy RTS. One automation per blind plus a simple helper script!
+A flexible Home Assistant automation blueprint for controlling vertical blinds with ESPSomfy RTS. Supports up to 4 preset positions using a simple index system.
 
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/Shiu/ESPSomfy-IQ2-vertical-blinds-blueprint/blob/main/vertical_blinds_controller.yaml)
 
 ## Features
 
-- **One automation per blind** - Simple and organized
+- **4 preset positions** - Closed, two middle positions, and fully open
+- **Position index system** - Uses simple 1,2,3,4 instead of confusing percentages
+- **Flexible configuration** - Define what percentage each position represents
 - **Event-based control** - Fire events to move blinds to any position
 - **Single helper script** - Shared by all blinds for firing events
-- **Minimal helpers** - Only need one position tracker per blind
-- **Customizable positions** - Set your own closed/middle/open values
 - **Soft start compensation** - Works perfectly with Benthin IQ2 motors
-- **Position reset option** - Can auto-reset to 100% before movements to prevent drift
+- **Position reset option** - Can auto-reset to position 4 (open) before movements
+
+## Position System
+
+Instead of using percentages directly, this blueprint uses position indices:
+- **Position 1**: Closed (you define what % this is, e.g., 1%)
+- **Position 2**: First middle position (e.g., 33%)
+- **Position 3**: Second middle position (e.g., 66%)
+- **Position 4**: Fully open (usually 100%)
+
+This makes it clear you're selecting presets, not actual percentages.
 
 ## Quick Start
 
-### 1. Create ONE Helper Per Blind
+### 1. Create Position Tracker Helper
 
 Create an Input Select helper to track position:
 
-**For Dining Room (with 33% middle):**
+**Go to Settings → Devices & Services → Helpers → Create Helper → Dropdown**
 - Name: `Dining Blinds Position`
-- Options: `0`, `33`, `100`
-
-**For Lounge (with 50% middle):**
-- Name: `Lounge Blinds Position`
-- Options: `0`, `50`, `100`
+- Options: 
+  ```
+  1
+  2
+  3
+  4
+  ```
+- Set initial value to match your blind's current position
 
 ### 2. Import the Blueprint
 
@@ -38,18 +51,22 @@ https://github.com/Shiu/ESPSomfy-IQ2-vertical-blinds-blueprint/blob/main/vertica
 ### 3. Create ONE Automation Per Blind
 
 1. Go to Settings → Automations & Scenes → Automations
-2. Create Automation → Use Blueprint → "ESPSomfy Vertical Blinds Controller (Event-Based)"
+2. Create Automation → Use Blueprint → "ESPSomfy Vertical Blinds Controller (4-Position)"
 3. Configure:
    - **Blind Entity**: `cover.dining_blinds`
-   - **Blind ID**: `dining` (unique identifier for this blind)
+   - **Blind ID**: `dining` (unique identifier)
    - **Position Tracker**: `input_select.dining_blinds_position`
-   - **Position Values**: Closed=`0`, Middle=`33`, Open=`100`
-   - **Timings**: Enter your measured times in milliseconds
+   - **Position Percentages**: 
+     - Position 1 = 1% (closed)
+     - Position 2 = 33% (first middle)
+     - Position 3 = 66% (second middle)
+     - Position 4 = 100% (open)
+   - **Timings**: Measure and enter times for each movement path
    - Save as: `Dining Blinds Controller`
 
-### 4. Create a Helper Script to Fire Events
+### 4. Create Helper Script
 
-Since dashboard buttons can't directly fire events, create this simple helper script:
+Create this helper script to fire events from dashboard:
 
 ```yaml
 # In scripts.yaml or via UI
@@ -59,7 +76,7 @@ move_vertical_blinds:
     blind_id:
       description: The blind identifier
     position:
-      description: Target position (0-100)
+      description: Target position (1,2,3,4)
   sequence:
     - event: vertical_blinds_move
       event_data:
@@ -69,123 +86,117 @@ move_vertical_blinds:
 
 ### 5. Add Dashboard Buttons
 
-Now add buttons that call the helper script:
-
 ```yaml
-type: horizontal-stack
+type: vertical-stack
 cards:
-  - type: button
-    name: Open
-    icon: mdi:blinds-open
-    tap_action:
-      action: call-service
-      service: script.move_vertical_blinds
-      data:
-        blind_id: dining
-        position: 100
+  - type: markdown
+    content: "## Dining Blinds"
   
-  - type: button
-    name: 33%
-    icon: mdi:blinds
-    tap_action:
-      action: call-service
-      service: script.move_vertical_blinds
-      data:
-        blind_id: dining
-        position: 33
-  
-  - type: button
-    name: Close
-    icon: mdi:blinds-closed
-    tap_action:
-      action: call-service
-      service: script.move_vertical_blinds
-      data:
-        blind_id: dining
-        position: 0
+  - type: horizontal-stack
+    cards:
+      - type: button
+        name: Closed
+        icon: mdi:blinds-closed
+        tap_action:
+          action: call-service
+          service: script.move_vertical_blinds
+          data:
+            blind_id: dining
+            position: 1
+      
+      - type: button
+        name: 33%
+        icon: mdi:blinds
+        tap_action:
+          action: call-service
+          service: script.move_vertical_blinds
+          data:
+            blind_id: dining
+            position: 2
+      
+      - type: button
+        name: 66%
+        icon: mdi:blinds
+        tap_action:
+          action: call-service
+          service: script.move_vertical_blinds
+          data:
+            blind_id: dining
+            position: 3
+      
+      - type: button
+        name: Open
+        icon: mdi:blinds-open
+        tap_action:
+          action: call-service
+          service: script.move_vertical_blinds
+          data:
+            blind_id: dining
+            position: 4
 ```
-
-## How It Works
-
-The automation listens for `vertical_blinds_move` events with:
-- `blind_id`: Which blind to control (matches the ID you configured)
-- `position`: Target position (0, 33, 50, 100, etc.)
-
-When an event is fired, the automation:
-1. Checks current position from the tracker
-2. Calculates the movement path needed
-3. Sends appropriate RTS commands with precise timing
-4. Updates the position tracker
 
 ## Measuring Timings
 
-Time these movements with a stopwatch:
-1. **Open → Closed**: Full travel time (stop at 1% to avoid auto-rotation)
-2. **Open → Middle**: Time to your middle position
-3. **Middle → Closed**: Time from middle to closed
-4. **Closed → Middle**: Time from closed to middle
-5. **Full Open**: Add 3-5 seconds buffer to ensure full open
+You need to measure times between ALL position combinations:
 
-Enter times in milliseconds (seconds × 1000).
+**From Position 4 (Open) going down:**
+- Position 4 → 3: Time to second middle
+- Position 4 → 2: Time to first middle
+- Position 4 → 1: Time to closed
+
+**Between middle positions:**
+- Position 3 → 2: Time between middles (down)
+- Position 2 → 3: Time between middles (up)
+- Position 3 → 1: Second middle to closed
+- Position 2 → 1: First middle to closed
+
+**From Position 1 (Closed) going up:**
+- Position 1 → 2: Time to first middle
+- Position 1 → 3: Time to second middle
+
+Enter all times in milliseconds (seconds × 1000).
 
 ## Configuration Tips
 
-### Position Values
-- **Closed**: Use `1` instead of `0` if your motor auto-rotates slats at 0%
-- **Middle**: Any value between 20-80 (33%, 50%, etc.)
-- **Open**: Usually `100`
+### Position Percentages
+- **Position 1**: Use 1% instead of 0% if motor auto-rotates slats at 0%
+- **Position 2-3**: Set to your preferred middle positions
+- **Position 4**: Usually 100% for fully open
 
 ### Timing Accuracy
 - Measure each path 2-3 times and average
-- Add 500ms buffer to "close" movements to ensure full travel
-- Enable "Always Reset" if you notice position drift
+- Add 500ms buffer for soft stop
+- The blueprint handles both directions (up/down) automatically
 
 ### Multiple Blinds
-Each blind gets its own automation with individual timings. Perfect for blinds with different motor speeds or travel distances.
-
-## Developer API
-
-You can also control blinds programmatically:
-
-```yaml
-# In automations or scripts
-- event: vertical_blinds_move
-  event_data:
-    blind_id: dining
-    position: 50
-
-# From Developer Tools → Events
-Event Type: vertical_blinds_move
-Event Data:
-  blind_id: dining
-  position: 33
-```
+Each blind gets its own automation with individual timings and position definitions.
 
 ## Troubleshooting
 
-**Position drift over time?**
+**Automation not triggering?**
+- Check that blind_id matches exactly
+- Ensure position tracker has options "1", "2", "3", "4" as strings
+- Reload automations after updating blueprint
+
+**Position drift?**
 - Enable "Always Reset Position First" option
-- Increases movement time but ensures accuracy
+- This makes blinds go to position 4 first, then to target
 
-**Blinds overshoot position?**
-- Reduce timing values by 500-1000ms
-- Motor soft stop adds extra travel
-
-**Different motor speeds?**
-- Each automation has independent timings
-- Measure and configure each blind separately
+**Wrong position percentages?**
+- Adjust the position_X_percent values in automation configuration
+- These define what actual percentage each position represents
 
 ## Example Setup
 
-For a home with two rooms:
-
-**Dining Room** (33% middle position):
+**Dining Room:**
 - Automation: `Dining Blinds Controller` with blind_id: `dining`
-- Position tracker: `input_select.dining_blinds_position` with options: 0, 33, 100
+- Position tracker: `input_select.dining_blinds_position`
+- Positions: 1=1%, 2=33%, 3=66%, 4=100%
 
-**Lounge** (50% middle position):
+**Lounge:**
 - Automation: `Lounge Blinds Controller` with blind_id: `lounge`
-- Position tracker: `input_select.lounge_blinds_position` with options: 0, 50, 100
+- Position tracker: `input_select.lounge_blinds_position`  
+- Positions: 1=0%, 2=25%, 3=75%, 4=100%
 
 ## License
 
