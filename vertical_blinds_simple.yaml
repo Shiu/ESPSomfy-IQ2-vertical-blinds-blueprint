@@ -1,16 +1,28 @@
 blueprint:
   name: ESPSomfy Vertical Blinds State Tracker
-  description: Tracks the state of vertical blinds for automations
+  description: >
+    Tracks the state of vertical blinds for automations.
+    
+    Simply updates a state helper whenever blind control events are fired.
+    Use this to know if blinds are closed for presence-based lighting, etc.
+    
+    States tracked: open, closed, my, unknown
+  
   domain: automation
   input:
     blind_id:
       name: Blind ID
-      description: Unique identifier for this blind (dining, lounge, etc)
+      description: >
+        Unique identifier for this blind (e.g., dining, lounge).
+        Must match the blind_id used in your control events.
       selector:
-        text:
+        text: {}
+    
     state_tracker:
       name: State Tracker Entity
-      description: Input select helper with options - open, closed, my, unknown
+      description: >
+        Input select helper to track blind state.
+        Create with options: open, closed, my, unknown
       selector:
         entity:
           domain: input_select
@@ -19,47 +31,51 @@ trigger:
   - platform: event
     event_type: vertical_blinds_control
 
+variables:
+  blind_id: !input blind_id
+
+condition: []
+
 action:
-  - variables:
-      blind_id_input: !input blind_id
-      event_blind_id: "{{ trigger.event.data.blind_id | default('none') }}"
-      event_command: "{{ trigger.event.data.command | default('none') }}"
-  
   - condition: template
-    value_template: "{{ event_blind_id == blind_id_input }}"
+    value_template: "{{ trigger.event.data.blind_id == blind_id }}"
   
   - choose:
       - conditions:
-          - "{{ event_command == 'open' }}"
+          - condition: template
+            value_template: "{{ trigger.event.data.command == 'open' }}"
         sequence:
           - service: input_select.select_option
-            target:
-              entity_id: !input state_tracker
             data:
-              option: open
+              entity_id: !input state_tracker
+              option: "open"
+      
       - conditions:
-          - "{{ event_command == 'close' }}"
+          - condition: template
+            value_template: "{{ trigger.event.data.command == 'close' }}"
         sequence:
           - service: input_select.select_option
-            target:
-              entity_id: !input state_tracker
             data:
-              option: closed
+              entity_id: !input state_tracker
+              option: "closed"
+      
       - conditions:
-          - "{{ event_command == 'my' }}"
+          - condition: template
+            value_template: "{{ trigger.event.data.command == 'my' }}"
         sequence:
           - service: input_select.select_option
-            target:
-              entity_id: !input state_tracker
             data:
-              option: my
+              entity_id: !input state_tracker
+              option: "my"
+      
       - conditions:
-          - "{{ event_command == 'stop' }}"
+          - condition: template
+            value_template: "{{ trigger.event.data.command == 'stop' }}"
         sequence:
           - service: input_select.select_option
-            target:
-              entity_id: !input state_tracker
             data:
-              option: unknown
+              entity_id: !input state_tracker
+              option: "unknown"
 
 mode: single
+max_exceeded: silent
