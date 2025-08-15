@@ -1,0 +1,142 @@
+# Simple 3-Position Vertical Blinds Configuration
+
+# Step 1: Create the state tracker helper
+input_select:
+  dining_blinds_state:
+    name: Dining Blinds State
+    options:
+      - "open"
+      - "closed"
+      - "my"
+      - "unknown"
+    initial: "unknown"
+    icon: mdi:blinds
+
+# Step 2: Helper script to fire events
+script:
+  control_vertical_blinds:
+    alias: Control Vertical Blinds
+    fields:
+      blind_id:
+        description: The blind identifier (e.g., dining, lounge)
+      command:
+        description: Command (open, close, my, stop, slat_open, slat_close)
+    sequence:
+      - event: vertical_blinds_control
+        event_data:
+          blind_id: "{{ blind_id }}"
+          command: "{{ command }}"
+
+# Step 3: Dashboard configuration
+dashboard:
+  type: vertical-stack
+  cards:
+    - type: markdown
+      content: "## Dining Blinds"
+    
+    # State display
+    - type: entity
+      entity: input_select.dining_blinds_state
+      name: Current State
+    
+    # Main controls
+    - type: horizontal-stack
+      cards:
+        - type: button
+          name: Open
+          icon: mdi:arrow-up
+          icon_height: 40px
+          tap_action:
+            action: call-service
+            service: script.control_vertical_blinds
+            data:
+              blind_id: dining
+              command: open
+        
+        - type: button
+          name: My
+          icon: mdi:star
+          icon_height: 40px
+          tap_action:
+            action: call-service
+            service: script.control_vertical_blinds
+            data:
+              blind_id: dining
+              command: my
+        
+        - type: button
+          name: Close
+          icon: mdi:arrow-down
+          icon_height: 40px
+          tap_action:
+            action: call-service
+            service: script.control_vertical_blinds
+            data:
+              blind_id: dining
+              command: close
+    
+    # Slat controls
+    - type: horizontal-stack
+      cards:
+        - type: button
+          name: Open Slats
+          icon: mdi:angle-right
+          tap_action:
+            action: call-service
+            service: script.control_vertical_blinds
+            data:
+              blind_id: dining
+              command: slat_open
+        
+        - type: button
+          name: Close Slats
+          icon: mdi:angle-acute
+          tap_action:
+            action: call-service
+            service: script.control_vertical_blinds
+            data:
+              blind_id: dining
+              command: slat_close
+    
+    # Stop button
+    - type: button
+      name: STOP
+      icon: mdi:stop
+      icon_height: 30px
+      tap_action:
+        action: call-service
+        service: script.control_vertical_blinds
+        data:
+          blind_id: dining
+          command: stop
+
+# Step 4: Presence-based lighting automation example
+automation:
+  - alias: "Dining Room Presence Lighting"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.dining_room_presence
+        to: "on"
+    condition:
+      - condition: sun
+        after: sunset
+        before: sunrise
+      - condition: state
+        entity_id: input_select.dining_blinds_state
+        state: "closed"
+    action:
+      - service: light.turn_on
+        entity_id: light.dining_room
+
+# Step 5: Binary sensor for "blinds closed" (optional)
+template:
+  - binary_sensor:
+      - name: "Dining Blinds Closed"
+        state: "{{ states('input_select.dining_blinds_state') == 'closed' }}"
+        device_class: window
+        icon: >
+          {% if states('input_select.dining_blinds_state') == 'closed' %}
+            mdi:blinds-closed
+          {% else %}
+            mdi:blinds-open
+          {% endif %}

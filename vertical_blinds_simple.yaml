@@ -1,0 +1,212 @@
+blueprint:
+  name: ESPSomfy Vertical Blinds Simple Controller
+  description: >
+    Simple control for ESPSomfy vertical blinds with just 3 positions.
+    Tracks blind state for automations (e.g., presence-based lighting).
+    
+    Positions:
+    - Open: Fully up
+    - Closed: Fully down
+    - My: Your preset position
+    
+    IMPORTANT: Program your motor's My position to your preferred setting.
+  
+  domain: automation
+  input:
+    blind_entity:
+      name: Blind Entity
+      description: The ESPSomfy cover entity to control
+      selector:
+        entity:
+          domain: cover
+    
+    blind_id:
+      name: Blind ID
+      description: >
+        Unique identifier for this blind (e.g., "dining", "lounge", "bedroom").
+        Used to target events to this specific blind.
+      selector:
+        text:
+    
+    state_tracker:
+      name: State Tracker Entity
+      description: >
+        Input select helper to track blind state.
+        Create with options: "open", "closed", "my", "unknown"
+      selector:
+        entity:
+          domain: input_select
+
+trigger:
+  - platform: event
+    event_type: vertical_blinds_control
+    id: control_event
+  
+  - platform: event
+    event_type: zha_event
+    id: wall_button
+
+variables:
+  blind_id: !input blind_id
+  state_tracker: !input state_tracker
+
+condition:
+  - or:
+      # Control event for this blind
+      - condition: template
+        value_template: "{{ trigger.id == 'control_event' and trigger.event.data.blind_id == blind_id }}"
+      
+      # Wall button event (will need to be customized per installation)
+      - condition: template
+        value_template: "{{ trigger.id == 'wall_button' and trigger.event.data.device_id in ['YOUR_BUTTON_1_ID', 'YOUR_BUTTON_2_ID'] }}"
+
+action:
+  - choose:
+      # Handle control events
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id == 'control_event' }}"
+        sequence:
+          - choose:
+              # Open command
+              - conditions:
+                  - condition: template
+                    value_template: "{{ trigger.event.data.command == 'open' }}"
+                sequence:
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "Up"
+                  - service: input_select.select_option
+                    data:
+                      entity_id: !input state_tracker
+                      option: "open"
+              
+              # Close command
+              - conditions:
+                  - condition: template
+                    value_template: "{{ trigger.event.data.command == 'close' }}"
+                sequence:
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "Down"
+                  - service: input_select.select_option
+                    data:
+                      entity_id: !input state_tracker
+                      option: "closed"
+              
+              # My position command
+              - conditions:
+                  - condition: template
+                    value_template: "{{ trigger.event.data.command == 'my' }}"
+                sequence:
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "My"
+                  - service: input_select.select_option
+                    data:
+                      entity_id: !input state_tracker
+                      option: "my"
+              
+              # Stop command
+              - conditions:
+                  - condition: template
+                    value_template: "{{ trigger.event.data.command == 'stop' }}"
+                sequence:
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "My"  # My acts as stop
+                  - service: input_select.select_option
+                    data:
+                      entity_id: !input state_tracker
+                      option: "unknown"
+              
+              # Slat open command
+              - conditions:
+                  - condition: template
+                    value_template: "{{ trigger.event.data.command == 'slat_open' }}"
+                sequence:
+                  - service: espsomfy_rts.send_step_command
+                    data:
+                      entity_id: !input blind_entity
+                      direction: "StepUp"
+                      step_size: 100
+              
+              # Slat close command
+              - conditions:
+                  - condition: template
+                    value_template: "{{ trigger.event.data.command == 'slat_close' }}"
+                sequence:
+                  - service: espsomfy_rts.send_step_command
+                    data:
+                      entity_id: !input blind_entity
+                      direction: "StepDown"
+                      step_size: 100
+      
+      # Handle wall button events (customize these based on your buttons)
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id == 'wall_button' }}"
+        sequence:
+          - choose:
+              # Button 1 press - Open
+              - conditions:
+                  - condition: template
+                    value_template: "{{ trigger.event.data.device_id == 'YOUR_BUTTON_1_ID' and trigger.event.data.command == 'press' }}"
+                sequence:
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "Up"
+                  - service: input_select.select_option
+                    data:
+                      entity_id: !input state_tracker
+                      option: "open"
+              
+              # Button 1 hold - My position
+              - conditions:
+                  - condition: template
+                    value_template: "{{ trigger.event.data.device_id == 'YOUR_BUTTON_1_ID' and trigger.event.data.command == 'hold' }}"
+                sequence:
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "My"
+                  - service: input_select.select_option
+                    data:
+                      entity_id: !input state_tracker
+                      option: "my"
+              
+              # Button 2 press - Close
+              - conditions:
+                  - condition: template
+                    value_template: "{{ trigger.event.data.device_id == 'YOUR_BUTTON_2_ID' and trigger.event.data.command == 'press' }}"
+                sequence:
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "Down"
+                  - service: input_select.select_option
+                    data:
+                      entity_id: !input state_tracker
+                      option: "closed"
+              
+              # Button 2 hold - My position
+              - conditions:
+                  - condition: template
+                    value_template: "{{ trigger.event.data.device_id == 'YOUR_BUTTON_2_ID' and trigger.event.data.command == 'hold' }}"
+                sequence:
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "My"
+                  - service: input_select.select_option
+                    data:
+                      entity_id: !input state_tracker
+                      option: "my"
+
+mode: single
+max_exceeded: silent
