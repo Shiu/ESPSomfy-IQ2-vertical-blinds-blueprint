@@ -31,11 +31,15 @@ trigger:
   - platform: event
     event_type: vertical_blinds_control
 
-condition:
-  - condition: template
-    value_template: "{{ trigger.event.data.blind_id == blind_id }}"
+variables:
+  blind_id: !input blind_id
+
+condition: []
 
 action:
+  - condition: template
+    value_template: "{{ trigger.event.data.blind_id == blind_id }}"
+  
   - choose:
       - conditions:
           - condition: template
@@ -72,9 +76,6 @@ action:
             data:
               entity_id: !input state_tracker
               option: "unknown"
-
-variables:
-  blind_id: !input blind_id
 
 mode: single
 max_exceeded: silent
