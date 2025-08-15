@@ -20,8 +20,8 @@ input_select:
       - "100"
     initial: "100"
 
-# Optional helper script for simpler button configuration
-# Not required - buttons can call event.fire directly
+# Required helper script to fire events from dashboard buttons
+# Dashboard buttons cannot directly fire events, so we need this script
 script:
   move_vertical_blinds:
     alias: Move Vertical Blinds
@@ -36,7 +36,7 @@ script:
           blind_id: "{{ blind_id }}"
           position: "{{ position }}"
 
-# Example Dashboard Configuration - Direct Event Method (No scripts needed!)
+# Example Dashboard Configuration
 dashboard_example:
   type: vertical-stack
   cards:
@@ -54,11 +54,9 @@ dashboard_example:
           icon: mdi:blinds-open
           tap_action:
             action: call-service
-            service: event.fire
+            service: script.move_vertical_blinds
             data:
-              event_type: vertical_blinds_move
-              event_data:
-                blind_id: dining
+              blind_id: dining
                 position: 100
         
         - type: button
@@ -66,11 +64,9 @@ dashboard_example:
           icon: mdi:blinds
           tap_action:
             action: call-service
-            service: event.fire
+            service: script.move_vertical_blinds
             data:
-              event_type: vertical_blinds_move
-              event_data:
-                blind_id: dining
+              blind_id: dining
                 position: 33
         
         - type: button
@@ -78,11 +74,9 @@ dashboard_example:
           icon: mdi:blinds-closed
           tap_action:
             action: call-service
-            service: event.fire
+            service: script.move_vertical_blinds
             data:
-              event_type: vertical_blinds_move
-              event_data:
-                blind_id: dining
+              blind_id: dining
                 position: 0
     
     # Lounge Controls
@@ -96,11 +90,9 @@ dashboard_example:
           icon: mdi:blinds-open
           tap_action:
             action: call-service
-            service: event.fire
+            service: script.move_vertical_blinds
             data:
-              event_type: vertical_blinds_move
-              event_data:
-                blind_id: lounge
+              blind_id: lounge
                 position: 100
         
         - type: button
@@ -108,11 +100,9 @@ dashboard_example:
           icon: mdi:blinds
           tap_action:
             action: call-service
-            service: event.fire
+            service: script.move_vertical_blinds
             data:
-              event_type: vertical_blinds_move
-              event_data:
-                blind_id: lounge
+              blind_id: lounge
                 position: 50
         
         - type: button
@@ -120,11 +110,9 @@ dashboard_example:
           icon: mdi:blinds-closed
           tap_action:
             action: call-service
-            service: event.fire
+            service: script.move_vertical_blinds
             data:
-              event_type: vertical_blinds_move
-              event_data:
-                blind_id: lounge
+              blind_id: lounge
                 position: 0
     
     # Current Position Display

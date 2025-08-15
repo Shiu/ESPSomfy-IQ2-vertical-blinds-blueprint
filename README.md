@@ -46,54 +46,12 @@ https://github.com/Shiu/ESPSomfy-IQ2-vertical-blinds-blueprint/blob/main/vertica
    - **Timings**: Enter your measured times in milliseconds
    - Save as: `Dining Blinds Controller`
 
-### 4. Add Dashboard Buttons
+### 4. Create a Helper Script to Fire Events
+
+Since dashboard buttons can't directly fire events, create this simple helper script:
 
 ```yaml
-type: horizontal-stack
-cards:
-  - type: button
-    name: Open
-    icon: mdi:blinds-open
-    tap_action:
-      action: call-service
-      service: event.fire
-      data:
-        event_type: vertical_blinds_move
-        event_data:
-          blind_id: dining
-          position: 100
-      
-  - type: button
-    name: 33%
-    icon: mdi:blinds
-    tap_action:
-      action: call-service
-      service: event.fire
-      data:
-        event_type: vertical_blinds_move
-        event_data:
-          blind_id: dining
-          position: 33
-      
-  - type: button
-    name: Close
-    icon: mdi:blinds-closed
-    tap_action:
-      action: call-service
-      service: event.fire
-      data:
-        event_type: vertical_blinds_move
-        event_data:
-          blind_id: dining
-          position: 0
-```
-
-### Alternative: Using a Helper Script
-
-For even simpler button configuration, you can create an optional helper script:
-
-```yaml
-# In scripts.yaml
+# In scripts.yaml or via UI
 move_vertical_blinds:
   alias: Move Vertical Blinds
   fields:
@@ -108,17 +66,42 @@ move_vertical_blinds:
         position: "{{ position }}"
 ```
 
-Then use simpler buttons:
+### 5. Add Dashboard Buttons
+
+Now add buttons that call the helper script:
+
 ```yaml
-type: button
-name: Open
-icon: mdi:blinds-open
-tap_action:
-  action: call-service
-  service: script.move_vertical_blinds
-  data:
-    blind_id: dining
-    position: 100
+type: horizontal-stack
+cards:
+  - type: button
+    name: Open
+    icon: mdi:blinds-open
+    tap_action:
+      action: call-service
+      service: script.move_vertical_blinds
+      data:
+        blind_id: dining
+        position: 100
+  
+  - type: button
+    name: 33%
+    icon: mdi:blinds
+    tap_action:
+      action: call-service
+      service: script.move_vertical_blinds
+      data:
+        blind_id: dining
+        position: 33
+  
+  - type: button
+    name: Close
+    icon: mdi:blinds-closed
+    tap_action:
+      action: call-service
+      service: script.move_vertical_blinds
+      data:
+        blind_id: dining
+        position: 0
 ```
 
 ## How It Works
