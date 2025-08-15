@@ -1,27 +1,34 @@
-# ESPSomfy Vertical Blinds Blueprint (Percentage-Based)
+# ESPSomfy Vertical Blinds Blueprint (My Position Enhanced)
 
-A Home Assistant automation blueprint for controlling vertical blinds with ESPSomfy RTS. Send any percentage value (1-100) to move blinds to that exact position. Only requires measuring ONE timing!
+A Home Assistant automation blueprint for controlling vertical blinds with ESPSomfy RTS. Uses the motor's My position for perfect closed accuracy, with timed movements for other positions. Only requires measuring ONE timing!
 
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/Shiu/ESPSomfy-IQ2-vertical-blinds-blueprint/blob/main/vertical_blinds_controller.yaml)
 
 ## Features
 
-- **Percentage Control** - Send any value from 1-100% to position blinds exactly
+- **Perfect Closed Position** - Uses motor's My preset for positions 1-10% (no gaps!)
 - **Smart Timing** - Only measure ONE time (full travel), everything else is calculated!
-- **Dynamic calculation** - Automatically calculates movement times for any position
+- **Latency-Proof Closing** - My command eliminates radio latency issues when closing
+- **Percentage Control** - Send values from 1-100% to position blinds
 - **Event-based control** - Fire events to move blinds to any percentage
 - **Single helper script** - Shared by all blinds for firing events
 - **Soft start compensation** - Works perfectly with Benthin IQ2 motors
-- **Position reset option** - Can auto-reset to fully open before movements
 
 ## Position System
 
-This blueprint uses direct percentage control:
-- **100%**: Fully open
-- **1-99%**: Any position you want
-- **1%**: Closed (use 1% instead of 0% to avoid auto-rotation on some motors)
+This blueprint uses a hybrid approach for accuracy:
+- **100%**: Fully open (timed movement)
+- **11-99%**: Intermediate positions (timed movements)
+- **1-10%**: Closed position (uses My preset for perfect accuracy)
 
-You can send any percentage value and the blinds will move to that exact position.
+**Note:** All positions from 1-10% go to the same My preset position. This ensures no gaps when closing, regardless of radio latency.
+
+## Prerequisites
+
+**IMPORTANT:** You must program your motor's My position to the closed position (1%):
+1. Use your remote to move blinds to the desired closed position (about 1% open)
+2. Press and hold the My button on your remote until the motor jogs
+3. The My position is now set to your closed position
 
 ## Quick Start
 
@@ -91,7 +98,7 @@ cards:
       - entity: input_number.dining_blinds_position
         name: Current Position
   
-  # Row 1: 100%, 90%, 80%
+  # Row 1: Common positions
   - type: horizontal-stack
     cards:
       - type: button
@@ -105,29 +112,6 @@ cards:
             position: 100
       
       - type: button
-        name: 90%
-        icon: mdi:blinds
-        tap_action:
-          action: call-service
-          service: script.move_vertical_blinds
-          data:
-            blind_id: dining
-            position: 90
-      
-      - type: button
-        name: 80%
-        icon: mdi:blinds
-        tap_action:
-          action: call-service
-          service: script.move_vertical_blinds
-          data:
-            blind_id: dining
-            position: 80
-  
-  # Row 2: 70%, 60%, 50%
-  - type: horizontal-stack
-    cards:
-      - type: button
         name: 70%
         icon: mdi:blinds
         tap_action:
@@ -136,16 +120,6 @@ cards:
           data:
             blind_id: dining
             position: 70
-      
-      - type: button
-        name: 60%
-        icon: mdi:blinds
-        tap_action:
-          action: call-service
-          service: script.move_vertical_blinds
-          data:
-            blind_id: dining
-            position: 60
       
       - type: button
         name: 50%
@@ -157,19 +131,9 @@ cards:
             blind_id: dining
             position: 50
   
-  # Row 3: 40%, 30%, 20%
+  # Row 2: Lower positions
   - type: horizontal-stack
     cards:
-      - type: button
-        name: 40%
-        icon: mdi:blinds
-        tap_action:
-          action: call-service
-          service: script.move_vertical_blinds
-          data:
-            blind_id: dining
-            position: 40
-      
       - type: button
         name: 30%
         icon: mdi:blinds
@@ -179,29 +143,6 @@ cards:
           data:
             blind_id: dining
             position: 30
-      
-      - type: button
-        name: 20%
-        icon: mdi:blinds
-        tap_action:
-          action: call-service
-          service: script.move_vertical_blinds
-          data:
-            blind_id: dining
-            position: 20
-  
-  # Row 4: 10%, Closed (1%)
-  - type: horizontal-stack
-    cards:
-      - type: button
-        name: 10%
-        icon: mdi:blinds
-        tap_action:
-          action: call-service
-          service: script.move_vertical_blinds
-          data:
-            blind_id: dining
-            position: 10
       
       - type: button
         name: Closed
@@ -218,20 +159,21 @@ cards:
 
 **You only need to measure ONE timing!**
 
-1. Start with blinds fully open (Position 3)
-2. Send a "Down" command and time how long it takes to reach fully closed (Position 1)
+1. Start with blinds fully open (100%)
+2. Send a "Down" command and time how long it takes to reach your My position (closed)
 3. Enter this time as "Full Travel Time" in milliseconds (seconds × 1000)
 
-That's it! The blueprint automatically calculates all other movements using:
-- Your position percentages (what % each position represents)
-- The soft start compensation value
-- Smart proportional calculations
+That's it! The blueprint:
+- Uses My command for perfect closed position (1-10%)
+- Calculates all other movements proportionally
+- Accounts for soft start characteristics
 
 ## Configuration Tips
 
-### Closed Position
-- Use 1% instead of 0% if your motor auto-rotates slats at 0%
-- You can send any percentage value from 1-100
+### My Position Setup
+- **Critical:** Program your motor's My position to the closed position first
+- Positions 1-10% all go to this My preset (perfect accuracy)
+- This eliminates radio latency issues when closing
 
 ### Timing Accuracy
 - Measure the full travel time 2-3 times and average
@@ -249,9 +191,10 @@ Each blind gets its own automation with individual timings and position definiti
 - Reload automations after updating blueprint
 
 **Position drift?**
-- Enable "Always Reset Position First" option
-- This makes blinds go to 100% first, then to target
-- Increase Soft Start Compensation if positions are consistently short
+- Only affects positions 11-99% (timed movements)
+- Positions 1-10% use My preset (always accurate)
+- Adjust Soft Start Distance % if intermediate positions are off
+- Enable "Always Reset Position First" for better accuracy
 
 **Wrong position percentages?**
 - Adjust the position_X_percent values in automation configuration

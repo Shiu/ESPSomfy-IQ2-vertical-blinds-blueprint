@@ -4,8 +4,9 @@ blueprint:
     Control system for ESPSomfy vertical blinds with automatic timing calculation.
     Only requires measuring ONE timing - the full travel time from open to closed.
     
-    Send any percentage value (1-100) to move blinds to that position.
-    Uses smart timing calculation with soft start compensation.
+    IMPORTANT: Program your motor's My position to the closed position (1%).
+    Positions 1-10% will use the My command for perfect accuracy.
+    Other positions use timed movements with smart calculation.
     
     Perfect for Benthin IQ2 motors with soft start/stop.
   
@@ -114,9 +115,11 @@ variables:
   
   # Calculate movement time dynamically based on positions
   # Motor has soft start (slow for 2-3 sec) then full speed, instant stop
-  # Soft start is a fixed distance regardless of total movement
+  # Positions <= 10 use My command, so treat them as position 1 for calculations
   calculate_time: >
-    {% set distance = (target_position - current_position) | abs %}
+    {% set current_pos = current_position if current_position > 10 else 1 %}
+    {% set target_pos = target_position if target_position > 10 else 1 %}
+    {% set distance = (target_pos - current_pos) | abs %}
     {% set distance_pct = distance / 99.0 %}
     {% if distance >= 99 %}
       {# Full travel - use exact measured time #}
@@ -180,17 +183,30 @@ action:
   - condition: template
     value_template: "{{ current_position != target_position }}"
   
-  # Movement needed - calculate and execute
-  - service: espsomfy_rts.send_command
-    data:
-      entity_id: !input blind_entity
-      command: "{{ movement_direction }}"
-  - delay:
-      milliseconds: "{{ calculate_time }}"
-  - service: espsomfy_rts.send_command
-    data:
-      entity_id: !input blind_entity
-      command: "My"
+  # Movement needed - check if we should use My position
+  - choose:
+      # Use My command for positions 1-10% (closed position)
+      - conditions:
+          - condition: template
+            value_template: "{{ target_position <= 10 }}"
+        sequence:
+          - service: espsomfy_rts.send_command
+            data:
+              entity_id: !input blind_entity
+              command: "My"
+    
+    # Use timed movement for other positions
+    default:
+      - service: espsomfy_rts.send_command
+        data:
+          entity_id: !input blind_entity
+          command: "{{ movement_direction }}"
+      - delay:
+          milliseconds: "{{ calculate_time }}"
+      - service: espsomfy_rts.send_command
+        data:
+          entity_id: !input blind_entity
+          command: "My"
   
   # Update position tracker after movement
   - service: input_number.set_value

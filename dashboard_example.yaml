@@ -1,6 +1,9 @@
 # Dashboard Configuration for Percentage-Based Vertical Blinds
 # Copy this into your dashboard YAML
 
+# IMPORTANT: First program your motor's My position to the closed position (1%)
+# This ensures perfect accuracy when closing the blinds
+
 # First, create the input_number helper:
 # Go to Settings → Devices & Services → Helpers → Create Helper → Number
 # Name: Dining Blinds Position
@@ -36,7 +39,7 @@ cards:
       - entity: input_number.dining_blinds_position
         name: Current Position
   
-  # Control buttons in rows
+  # Main control buttons
   - type: horizontal-stack
     cards:
       - type: button
@@ -50,28 +53,6 @@ cards:
             position: 100
       
       - type: button
-        name: 90%
-        icon: mdi:blinds
-        tap_action:
-          action: call-service
-          service: script.move_vertical_blinds
-          data:
-            blind_id: dining
-            position: 90
-      
-      - type: button
-        name: 80%
-        icon: mdi:blinds
-        tap_action:
-          action: call-service
-          service: script.move_vertical_blinds
-          data:
-            blind_id: dining
-            position: 80
-  
-  - type: horizontal-stack
-    cards:
-      - type: button
         name: 70%
         icon: mdi:blinds
         tap_action:
@@ -80,16 +61,6 @@ cards:
           data:
             blind_id: dining
             position: 70
-      
-      - type: button
-        name: 60%
-        icon: mdi:blinds
-        tap_action:
-          action: call-service
-          service: script.move_vertical_blinds
-          data:
-            blind_id: dining
-            position: 60
       
       - type: button
         name: 50%
@@ -104,16 +75,6 @@ cards:
   - type: horizontal-stack
     cards:
       - type: button
-        name: 40%
-        icon: mdi:blinds
-        tap_action:
-          action: call-service
-          service: script.move_vertical_blinds
-          data:
-            blind_id: dining
-            position: 40
-      
-      - type: button
         name: 30%
         icon: mdi:blinds
         tap_action:
@@ -124,28 +85,6 @@ cards:
             position: 30
       
       - type: button
-        name: 20%
-        icon: mdi:blinds
-        tap_action:
-          action: call-service
-          service: script.move_vertical_blinds
-          data:
-            blind_id: dining
-            position: 20
-  
-  - type: horizontal-stack
-    cards:
-      - type: button
-        name: 10%
-        icon: mdi:blinds
-        tap_action:
-          action: call-service
-          service: script.move_vertical_blinds
-          data:
-            blind_id: dining
-            position: 10
-      
-      - type: button
         name: Closed
         icon: mdi:blinds-closed
         tap_action:
@@ -154,12 +93,15 @@ cards:
           data:
             blind_id: dining
             position: 1
+        entity_picture: null
+        show_icon: true
+      
+      # Empty space for alignment
+      - type: button
+        name: " "
+        tap_action:
+          action: none
+        show_icon: false
 
-# Optional: Add a slider for direct control
-  # Note: Use the slider to change input_number.dining_blinds_custom,
-  # then create an automation to fire the event when it changes
-  - type: entities
-    title: Direct Control
-    entities:
-      - entity: input_number.dining_blinds_position
-        name: Slider Control
+# Note: Positions 1-10% all go to the My preset for perfect accuracy
+# Other positions use timed movements
