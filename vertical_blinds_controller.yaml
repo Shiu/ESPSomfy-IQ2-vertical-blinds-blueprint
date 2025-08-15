@@ -71,21 +71,10 @@ blueprint:
           step: 1
           unit_of_measurement: "%"
     
-    # Timing configurations - only 6 paths needed for 3 positions!
-    time_3_to_2:
-      name: Time - Position 3 to 2 (ms)
-      description: Time from fully open to middle position
-      default: 15000
-      selector:
-        number:
-          min: 1000
-          max: 60000
-          step: 100
-          unit_of_measurement: "ms"
-    
+    # Timing configurations in logical order
     time_3_to_1:
-      name: Time - Position 3 to 1 (ms)
-      description: Time from fully open to closed
+      name: Time - Open to Closed (ms)
+      description: Time from position 3 (open) to position 1 (closed)
       default: 30000
       selector:
         number:
@@ -94,9 +83,20 @@ blueprint:
           step: 100
           unit_of_measurement: "ms"
     
+    time_3_to_2:
+      name: Time - Open to Middle (ms)
+      description: Time from position 3 (open) to position 2 (middle)
+      default: 15000
+      selector:
+        number:
+          min: 1000
+          max: 60000
+          step: 100
+          unit_of_measurement: "ms"
+    
     time_2_to_1:
-      name: Time - Position 2 to 1 (ms)
-      description: Time from middle position to closed
+      name: Time - Middle to Closed (ms)
+      description: Time from position 2 (middle) to position 1 (closed)
       default: 15000
       selector:
         number:
@@ -106,8 +106,8 @@ blueprint:
           unit_of_measurement: "ms"
     
     time_1_to_2:
-      name: Time - Position 1 to 2 (ms)
-      description: Time from closed to middle position
+      name: Time - Closed to Middle (ms)
+      description: Time from position 1 (closed) to position 2 (middle)
       default: 15000
       selector:
         number:
@@ -116,15 +116,15 @@ blueprint:
           step: 100
           unit_of_measurement: "ms"
     
-    time_full_open:
-      name: Time - Full Open Reset (ms)
-      description: Time to fully open from any position (used for position reset)
-      default: 35000
+    reset_buffer:
+      name: Reset Buffer Time (ms)
+      description: Extra time added when resetting to ensure fully open position
+      default: 3000
       selector:
         number:
           min: 1000
-          max: 60000
-          step: 100
+          max: 10000
+          step: 500
           unit_of_measurement: "ms"
     
     reset_first:
@@ -146,6 +146,9 @@ variables:
   current_position: "{{ states(position_tracker) }}"
   target_position: "{{ trigger.event.data.position | string }}"
   reset_first: !input reset_first
+  time_3_to_1: !input time_3_to_1
+  time_3_to_2: !input time_3_to_2
+  reset_buffer: !input reset_buffer
 
 condition:
   - condition: template
@@ -156,14 +159,45 @@ action:
   - choose:
       - conditions:
           - condition: template
-            value_template: "{{ reset_first and current_position != '3' }}"
+            value_template: "{{ reset_first }}"
         sequence:
-          - service: espsomfy_rts.send_command
-            data:
-              entity_id: !input blind_entity
-              command: "Up"
-          - delay:
-              milliseconds: !input time_full_open
+          - choose:
+              # From position 1 - use full time plus buffer
+              - conditions:
+                  - condition: template
+                    value_template: "{{ current_position == '1' }}"
+                sequence:
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "Up"
+                  - delay:
+                      milliseconds: "{{ (time_3_to_1 | int) + (reset_buffer | int) }}"
+              
+              # From position 2 - use time to open plus buffer
+              - conditions:
+                  - condition: template
+                    value_template: "{{ current_position == '2' }}"
+                sequence:
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "Up"
+                  - delay:
+                      milliseconds: "{{ (time_3_to_2 | int) + (reset_buffer | int) }}"
+              
+              # From position 3 - just use buffer to ensure fully open
+              - conditions:
+                  - condition: template
+                    value_template: "{{ current_position == '3' }}"
+                sequence:
+                  - service: espsomfy_rts.send_command
+                    data:
+                      entity_id: !input blind_entity
+                      command: "Up"
+                  - delay:
+                      milliseconds: !input reset_buffer
+          
           - service: input_select.select_option
             data:
               entity_id: !input position_tracker
